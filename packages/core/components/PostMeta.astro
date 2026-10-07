@@ -1,0 +1,14 @@
+---
+import { useLocale, urls, authorInfo, encodePath, type NoteData } from '../src/runtime/index.ts';
+interface Props { data: NoteData; showAuthors?: boolean }
+const { data, showAuthors = true } = Astro.props;
+const { t, date } = useLocale(data.lang);
+---
+<p class="pw-meta">
+  {data.date && <time datetime={data.date.toISOString()}>{date(data.date)}</time>}
+  {data.updated && <span class="pw-updated"> · {t('post.updated', { date: date(data.updated, 'medium') })}</span>}
+  <span> · {t('post.readingTime', { n: data.readingTime })}</span>
+  {showAuthors && data.authors.length > 0 && (
+    <span> · {data.authors.map((a, i) => <>{i > 0 && ', '}<a href={encodePath(urls.author(a, data.lang))} rel="author">{authorInfo(a).name}</a></>)}</span>
+  )}
+</p>

@@ -1,0 +1,21 @@
+---
+import Base from '@pw/layouts/Base';
+import { config, useLocale, getNoteMap, collectionLd, encodePath, type HtmlRoute } from '../src/runtime/index.ts';
+interface Props { route: Extract<HtmlRoute, { kind: 'archive' }> }
+const { route } = Astro.props;
+const { t, date, digits } = useLocale(route.lang);
+const map = await getNoteMap();
+---
+<Base kind="archive" lang={route.lang} path={route.path} title={t('archive.title')} description={t('archive.title')} jsonld={[collectionLd(config as never, t('archive.title'), route.path, route.lang)]}>
+  <header class="pw-list-header"><h1 class="pw-title">{t('archive.title')}</h1></header>
+  {route.groups.map((g) => (
+    <section class="pw-archive-year">
+      <h2><a href={encodePath(g.url)}>{digits(g.year)}</a></h2>
+      <ul>
+        {g.ids.map((id) => map.get(id)!).map((n) => (
+          <li><time datetime={n.data.date?.toISOString()}>{date(n.data.date, 'medium')}</time> <a href={encodePath(n.data.url)}>{n.data.title}</a></li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</Base>

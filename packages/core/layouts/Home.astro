@@ -1,0 +1,24 @@
+---
+import Base from '@pw/layouts/Base';
+import PostCard from '@pw/components/PostCard';
+import Pagination from '@pw/components/Pagination';
+import { config, useLocale, getNoteMap, siteTitle, siteDescription, websiteLd, collectionLd, urls, type ListRoute } from '../src/runtime/index.ts';
+interface Props { route: ListRoute }
+const { route } = Astro.props;
+const { t } = useLocale(route.lang);
+const map = await getNoteMap();
+const posts = route.ids.map((id) => map.get(id)!);
+const title = route.page > 1 ? t('pagination.page', { n: route.page }) : undefined;
+const locales = Object.keys(config.locales.supported);
+const alternates = route.page === 1 && locales.length > 1 ? Object.fromEntries(locales.map((l) => [l, urls.home(l)])) : undefined;
+---
+<Base kind="home" lang={route.lang} path={route.path} title={title} description={siteDescription(route.lang)} prev={route.prev} next={route.next}
+  alternates={alternates} switcher={alternates}
+  jsonld={[route.page === 1 ? websiteLd(config as never, route.lang, config.search ? urls.search(route.lang) : undefined) : collectionLd(config as never, title ?? '', route.path, route.lang)]}>
+  <header class="pw-list-header">
+    <h1 class:list={['pw-title', { 'sr-only': route.page === 1 }]}>{route.page === 1 ? siteTitle(route.lang) : title}</h1>
+    {route.page === 1 && siteDescription(route.lang) && <p class="pw-lede">{siteDescription(route.lang)}</p>}
+  </header>
+  <div class="pw-list">{posts.map((n) => <PostCard note={n} />)}</div>
+  <Pagination lang={route.lang} page={route.page} totalPages={route.totalPages} prev={route.prev} next={route.next} />
+</Base>

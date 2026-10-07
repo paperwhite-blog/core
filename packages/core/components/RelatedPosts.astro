@@ -1,0 +1,12 @@
+---
+import { useLocale, encodePath, type LinkRef } from '../src/runtime/index.ts';
+interface Props { links: LinkRef[]; lang: string }
+const { links, lang } = Astro.props;
+const { t } = useLocale(lang);
+---
+{links.length > 0 && (
+  <section class="pw-related" aria-labelledby="pw-related-h">
+    <h2 id="pw-related-h">{t('post.related')}</h2>
+    <ul>{links.map((l) => <li><a href={encodePath(l.url)}>{l.title}</a></li>)}</ul>
+  </section>
+)}

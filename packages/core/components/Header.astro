@@ -1,0 +1,41 @@
+---
+import { config, useLocale, urls, siteTitle, getPages, encodePath } from '../src/runtime/index.ts';
+import ThemeToggle from '@pw/components/ThemeToggle';
+
+interface Props {
+  lang: string;
+  path: string;
+  switcher?: Record<string, string>;
+}
+const { lang, path, switcher } = Astro.props;
+const { t } = useLocale(lang);
+const pages = (await getPages(lang)).slice(0, 4);
+const locales = Object.values(config.locales.supported);
+const nav = [
+  { href: urls.archive(lang), label: t('nav.archive') },
+  { href: urls.tags(lang), label: t('nav.tags') },
+  ...pages.map((p) => ({ href: p.data.url, label: p.data.title })),
+  ...(config.search ? [{ href: urls.search(lang), label: t('nav.search') }] : []),
+];
+const isCurrent = (href: string) => decodeURI(path) === decodeURI(href);
+---
+<header class="pw-header">
+  <div class="pw-header-inner">
+    <a class="pw-brand" href={encodePath(urls.home(lang))} rel="home">{siteTitle(lang)}</a>
+    <nav class="pw-nav" aria-label={t('nav.menu')}>
+      <ul>
+        {nav.map((n) => <li><a href={encodePath(n.href)} aria-current={isCurrent(n.href) ? 'page' : undefined}>{n.label}</a></li>)}
+      </ul>
+    </nav>
+    <div class="pw-header-tools">
+      {locales.length > 1 && (
+        <ul class="pw-langs" aria-label="Language">
+          {locales.filter((l) => l.code !== lang).map((l) => (
+            <li><a href={encodePath(switcher?.[l.code] ?? urls.home(l.code))} hreflang={l.code} lang={l.code}>{l.label}</a></li>
+          ))}
+        </ul>
+      )}
+      <ThemeToggle lang={lang} />
+    </div>
+  </div>
+</header>

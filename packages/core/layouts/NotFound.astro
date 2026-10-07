@@ -1,0 +1,15 @@
+---
+import Base from '@pw/layouts/Base';
+import SearchBox from '@pw/components/SearchBox';
+import { config, useLocale, urls, encodePath } from '../src/runtime/index.ts';
+const lang = config.locales.default;
+const { t } = useLocale(lang);
+---
+<Base kind="404" lang={lang} path="/404/" title={t('404.title')} noindex>
+  <header class="pw-list-header">
+    <h1 class="pw-title">{t('404.title')}</h1>
+    <p class="pw-lede">{t('404.body')}</p>
+  </header>
+  {config.search && <SearchBox lang={lang} />}
+  <p><a href={encodePath(urls.home(lang))}>{t('404.home')}</a></p>
+</Base>

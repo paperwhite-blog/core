@@ -1,0 +1,10 @@
+---
+import { useLocale, urls, siteTitle } from '../src/runtime/index.ts';
+interface Props { lang: string }
+const { lang } = Astro.props;
+const { t, digits } = useLocale(lang);
+const year = new Date().getUTCFullYear();
+---
+<footer class="pw-footer">
+  <p>© {digits(year)} {siteTitle(lang)} · <a href={urls.feed(lang, 'rss.xml')}>{t('feed.rss')}</a> · <a href="https://github.com/paperwhite" rel="noopener">{t('footer.poweredBy')}</a></p>
+</footer>

@@ -1,0 +1,14 @@
+---
+import { useLocale, encodePath, type LinkRef } from '../src/runtime/index.ts';
+interface Props { links: LinkRef[]; lang: string }
+const { links, lang } = Astro.props;
+const { t } = useLocale(lang);
+---
+{links.length > 0 && (
+  <section class="pw-backlinks" aria-labelledby="pw-backlinks-h">
+    <h2 id="pw-backlinks-h">{t('post.backlinks')}</h2>
+    <ul>
+      {links.map((l) => <li><a href={encodePath(l.url)} class="internal">{l.title}</a>{l.excerpt && <p dir="auto">{l.excerpt}</p>}</li>)}
+    </ul>
+  </section>
+)}

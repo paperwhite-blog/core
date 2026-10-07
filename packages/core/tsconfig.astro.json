@@ -1,0 +1,4 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": ["components", "layouts", "routes", "islands", "client.d.ts", "src"]
+}

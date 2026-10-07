@@ -1,0 +1,13 @@
+---
+import { encodePath, type Note } from '../src/runtime/index.ts';
+import PostMeta from '@pw/components/PostMeta';
+interface Props { note: Note; headingLevel?: 2 | 3 }
+const { note, headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as 'h2';
+const d = note.data;
+---
+<article class="pw-card" lang={d.lang} dir={d.dir}>
+  <H class="pw-card-title"><a href={encodePath(d.url)}>{d.title}</a></H>
+  <PostMeta data={d} showAuthors={false} />
+  <p class="pw-card-excerpt">{d.description}</p>
+</article>

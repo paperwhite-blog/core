@@ -1,0 +1,22 @@
+---
+/** Table of contents with scroll-spy (CSS scroll-driven where supported, tiny IntersectionObserver fallback). */
+import { useLocale, type Heading } from '../src/runtime/index.ts';
+interface Props { headings: Heading[]; lang: string; maxDepth?: number }
+const { headings, lang, maxDepth = 3 } = Astro.props;
+const { t } = useLocale(lang);
+const items = headings.filter((h) => h.depth <= maxDepth);
+const min = Math.min(...items.map((h) => h.depth));
+---
+{items.length > 0 && (
+  <nav class="pw-toc" aria-labelledby="pw-toc-label" data-pw-toc>
+    <details open>
+      <summary id="pw-toc-label">{t('post.toc')}</summary>
+      <ol>
+        {items.map((h) => <li style={`--pw-toc-depth:${h.depth - min}`}><a href={`#${encodeURIComponent(h.slug)}`} data-pw-toc-link>{h.text}</a></li>)}
+      </ol>
+    </details>
+  </nav>
+)}
+<script>
+  import '../islands/toc.ts';
+</script>

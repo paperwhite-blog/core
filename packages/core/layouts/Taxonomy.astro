@@ -1,0 +1,36 @@
+---
+/** Tag, category, author, yearly archive and series listings. */
+import Base from '@pw/layouts/Base';
+import PostCard from '@pw/components/PostCard';
+import Pagination from '@pw/components/Pagination';
+import { config, useLocale, getNoteMap, authorInfo, collectionLd, itemListLd, urls, type ListRoute } from '../src/runtime/index.ts';
+interface Props { route: ListRoute }
+const { route } = Astro.props;
+const { t, digits } = useLocale(route.lang);
+const map = await getNoteMap();
+const posts = route.ids.map((id) => map.get(id)!);
+const term = route.term ?? '';
+const heading =
+  route.kind === 'tag' ? t('tag.title', { tag: term })
+  : route.kind === 'category' ? t('category.title', { category: term })
+  : route.kind === 'author' ? t('author.title', { author: authorInfo(term).name })
+  : route.kind === 'year' ? t('archive.year', { year: digits(term) })
+  : t('series.title', { series: term });
+const title = route.page > 1 ? `${heading} · ${t('pagination.page', { n: route.page })}` : heading;
+const ld = route.kind === 'series'
+  ? itemListLd(config as never, term, posts.map((p) => ({ title: p.data.title, url: p.data.url })))
+  : collectionLd(config as never, title, route.path, route.lang);
+const feed = route.kind === 'tag' && config.feeds.perTag ? urls.tagFeed(term, route.lang) : undefined;
+const Tag = route.kind === 'series' ? 'ol' : 'div';
+---
+<Base kind={route.kind} lang={route.lang} path={route.path} title={title} description={heading} prev={route.prev} next={route.next} jsonld={[ld]}>
+  {feed && <link slot="head" rel="alternate" type="application/rss+xml" title={heading} href={feed} />}
+  <header class="pw-list-header">
+    <h1 class="pw-title">{heading}</h1>
+    {feed && <p><a href={feed}>{t('feed.rss')}</a></p>}
+  </header>
+  <Tag class:list={['pw-list', { 'pw-series-list': route.kind === 'series' }]}>
+    {posts.map((n) => route.kind === 'series' ? <li><PostCard note={n} /></li> : <PostCard note={n} />)}
+  </Tag>
+  <Pagination lang={route.lang} page={route.page} totalPages={route.totalPages} prev={route.prev} next={route.next} />
+</Base>

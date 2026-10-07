@@ -1,0 +1,8 @@
+---
+import { getNoteMap, type HtmlRoute } from '../src/runtime/index.ts';
+import Post from '@pw/layouts/Post';
+import Page from '@pw/layouts/Page';
+interface Props { route: Extract<HtmlRoute, { kind: 'note' }> }
+const note = (await getNoteMap()).get(Astro.props.route.id)!;
+---
+{note.data.type === 'post' ? <Post note={note} /> : <Page note={note} />}

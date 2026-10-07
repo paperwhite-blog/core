@@ -1,0 +1,43 @@
+---
+/** Document shell: <html lang dir>, head metadata, header, main, footer. */
+import '@pw/styles.css';
+import Seo, { type SeoProps } from '../components/Seo.astro';
+import Header from '@pw/components/Header';
+import Footer from '@pw/components/Footer';
+import HeadExtra from '@pw/components/HeadExtra';
+import { useLocale } from '../src/runtime/index.ts';
+
+interface Props extends SeoProps {
+  bodyClass?: string[];
+  kind: string;
+  math?: boolean;
+  /** Translations / locale alternates for the language switcher */
+  switcher?: Record<string, string>;
+}
+
+const props = Astro.props as Props;
+const { lang, dir, t } = useLocale(props.lang);
+---
+<!doctype html>
+<html lang={lang} dir={dir}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="generator" content="PaperWhite" />
+    <script is:inline>try{var t=localStorage.getItem('pw-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+    <HeadExtra lang={lang} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <Seo {...props} />
+    {props.math && <link rel="stylesheet" href="/_pw/katex/katex.min.css" />}
+    <slot name="head" />
+  </head>
+  <body class:list={['pw-body', ...(props.bodyClass ?? [])]} data-pw-kind={props.kind}>
+    <a class="pw-skip" href="#main">{t('nav.skip')}</a>
+    <Header lang={lang} path={props.path} switcher={props.switcher} />
+    <main id="main" class="pw-main">
+      <slot />
+    </main>
+    <Footer lang={lang} />
+  </body>
+</html>

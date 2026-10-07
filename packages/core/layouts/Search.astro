@@ -1,0 +1,12 @@
+---
+import Base from '@pw/layouts/Base';
+import SearchBox from '@pw/components/SearchBox';
+import { useLocale, type HtmlRoute } from '../src/runtime/index.ts';
+interface Props { route: Extract<HtmlRoute, { kind: 'search' }> }
+const { route } = Astro.props;
+const { t } = useLocale(route.lang);
+---
+<Base kind="search" lang={route.lang} path={route.path} title={t('search.label')} description={t('search.placeholder')} noindex>
+  <header class="pw-list-header"><h1 class="pw-title">{t('search.label')}</h1></header>
+  <SearchBox lang={route.lang} autofocus />
+</Base>

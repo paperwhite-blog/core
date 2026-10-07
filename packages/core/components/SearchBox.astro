@@ -1,0 +1,17 @@
+---
+import { useLocale, urls, encodePath } from '../src/runtime/index.ts';
+interface Props { lang: string; autofocus?: boolean }
+const { lang, autofocus } = Astro.props;
+const { t } = useLocale(lang);
+---
+<form class="pw-search" role="search" action={encodePath(urls.search(lang))} method="get" data-pw-search data-pw-lang={lang}
+  data-i18n-none={t('search.noResults', { q: '{q}' })} data-i18n-count={t('search.results', { n: 0 }).replace(/[0۰٠]/, '{n}')}>
+  <label for="pw-q" class="sr-only">{t('search.label')}</label>
+  <input id="pw-q" name="q" type="search" placeholder={t('search.placeholder')} autocomplete="off" autofocus={autofocus} />
+  <button type="submit">{t('search.label')}</button>
+  <div class="pw-search-status" role="status" aria-live="polite"></div>
+  <ol class="pw-search-results"></ol>
+</form>
+<script>
+  import '../islands/search.ts';
+</script>

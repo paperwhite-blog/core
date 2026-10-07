@@ -1,0 +1,29 @@
+---
+/**
+ * Catch-all route: every HTML page of a PaperWhite site (notes, home, archives,
+ * taxonomies, search, legacy redirects). Layouts resolve through the override cascade.
+ */
+import type { GetStaticPaths } from 'astro';
+import { getHtmlRoutes, toParam, type HtmlRoute } from '../src/runtime/index.ts';
+import NoteRoute from '@pw/layouts/NoteRoute';
+import Home from '@pw/layouts/Home';
+import Taxonomy from '@pw/layouts/Taxonomy';
+import Archive from '@pw/layouts/Archive';
+import Tags from '@pw/layouts/Tags';
+import Search from '@pw/layouts/Search';
+import Redirect from '@pw/layouts/Redirect';
+
+export const getStaticPaths = (async () => {
+  const routes = await getHtmlRoutes();
+  return routes.map((r) => ({ params: { path: toParam(r.path) }, props: { route: r } }));
+}) satisfies GetStaticPaths;
+
+const { route } = Astro.props as { route: HtmlRoute };
+---
+{route.kind === 'note' && <NoteRoute route={route} />}
+{route.kind === 'home' && <Home route={route} />}
+{(route.kind === 'tag' || route.kind === 'category' || route.kind === 'author' || route.kind === 'year' || route.kind === 'series') && <Taxonomy route={route} />}
+{route.kind === 'archive' && <Archive route={route} />}
+{route.kind === 'tags' && <Tags route={route} />}
+{route.kind === 'search' && <Search route={route} />}
+{route.kind === 'redirect' && <Redirect route={route} />}

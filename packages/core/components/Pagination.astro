@@ -1,0 +1,13 @@
+---
+import { useLocale, encodePath } from '../src/runtime/index.ts';
+interface Props { lang: string; page: number; totalPages: number; prev?: string; next?: string }
+const { lang, page, totalPages, prev, next } = Astro.props;
+const { t } = useLocale(lang);
+---
+{totalPages > 1 && (
+  <nav class="pw-pagination" aria-label={t('pagination.page', { n: page })}>
+    {prev ? <a href={encodePath(prev)} rel="prev">← {t('pagination.prev')}</a> : <span />}
+    <span class="pw-pagination-count">{t('pagination.page', { n: page })} / {useLocale(lang).digits(totalPages)}</span>
+    {next ? <a href={encodePath(next)} rel="next">{t('pagination.next')} →</a> : <span />}
+  </nav>
+)}

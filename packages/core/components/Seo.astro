@@ -1,0 +1,64 @@
+---
+/** <head> metadata: title, description, canonical, robots, OG/Twitter, hreflang, feeds, JSON-LD. */
+import { config, absUrl, ldScript, formatTitle, siteTitle, urls } from '../src/runtime/index.ts';
+
+export interface SeoProps {
+  lang: string;
+  title?: string;
+  description?: string;
+  /** site-relative path of this page */
+  path: string;
+  canonical?: string;
+  noindex?: boolean;
+  type?: 'website' | 'article';
+  image?: { src: string; width?: number; height?: number; alt?: string };
+  alternates?: Record<string, string>;
+  prev?: string;
+  next?: string;
+  jsonld?: unknown[];
+  article?: { published?: Date; modified?: Date; tags?: string[]; section?: string; authors?: string[] };
+}
+
+const p = Astro.props as SeoProps;
+const site = siteTitle(p.lang);
+const fullTitle = formatTitle(config as never, p.title, site);
+const canonical = p.canonical ?? absUrl(config as never, p.path);
+const image = p.image ?? (config.seo.defaultImage ? { src: config.seo.defaultImage } : undefined);
+const imageUrl = image ? absUrl(config as never, image.src) : undefined;
+const ogLocale = (l: string) => (config.locales.supported[l]?.intl ?? l).replace('-', '_');
+const twitter = config.seo.twitterHandle ?? config.site.social?.twitter;
+const alternates = Object.entries(p.alternates ?? {});
+---
+<title>{fullTitle}</title>
+{p.description && <meta name="description" content={p.description} />}
+<link rel="canonical" href={canonical} />
+<meta name="robots" content={p.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'} />
+<meta property="og:site_name" content={site} />
+<meta property="og:title" content={p.title ?? site} />
+{p.description && <meta property="og:description" content={p.description} />}
+<meta property="og:type" content={p.type ?? 'website'} />
+<meta property="og:url" content={canonical} />
+<meta property="og:locale" content={ogLocale(p.lang)} />
+{alternates.filter(([l]) => l !== p.lang).map(([l]) => <meta property="og:locale:alternate" content={ogLocale(l)} />)}
+{imageUrl && <meta property="og:image" content={imageUrl} />}
+{imageUrl && image?.width ? <meta property="og:image:width" content={String(image.width)} /> : null}
+{imageUrl && image?.height ? <meta property="og:image:height" content={String(image.height)} /> : null}
+{imageUrl && image?.alt && <meta property="og:image:alt" content={image.alt} />}
+{p.article?.published && <meta property="article:published_time" content={p.article.published.toISOString()} />}
+{p.article?.modified && <meta property="article:modified_time" content={p.article.modified.toISOString()} />}
+{p.article?.section && <meta property="article:section" content={p.article.section} />}
+{p.article?.tags?.map((t) => <meta property="article:tag" content={t} />)}
+<meta name="twitter:card" content={imageUrl ? 'summary_large_image' : 'summary'} />
+{twitter && <meta name="twitter:site" content={twitter.startsWith('@') ? twitter : `@${twitter}`} />}
+<meta name="twitter:title" content={p.title ?? site} />
+{p.description && <meta name="twitter:description" content={p.description} />}
+{imageUrl && <meta name="twitter:image" content={imageUrl} />}
+{alternates.map(([l, u]) => <link rel="alternate" hreflang={l} href={absUrl(config as never, u)} />)}
+{alternates.length > 0 && <link rel="alternate" hreflang="x-default" href={absUrl(config as never, p.alternates![config.locales.default] ?? Object.values(p.alternates!)[0]!)} />}
+{p.prev && <link rel="prev" href={absUrl(config as never, p.prev)} />}
+{p.next && <link rel="next" href={absUrl(config as never, p.next)} />}
+<link rel="alternate" type="application/rss+xml" title={`${site} RSS`} href={urls.feed(p.lang, 'rss.xml')} />
+<link rel="alternate" type="application/atom+xml" title={`${site} Atom`} href={urls.feed(p.lang, 'atom.xml')} />
+<link rel="alternate" type="application/feed+json" title={`${site} JSON Feed`} href={urls.feed(p.lang, 'feed.json')} />
+<link rel="sitemap" href="/sitemap-index.xml" />
+{(p.jsonld ?? []).filter(Boolean).map((d) => <script type="application/ld+json" set:html={ldScript(d)} />)}

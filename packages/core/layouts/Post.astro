@@ -1,0 +1,77 @@
+---
+import Base from '@pw/layouts/Base';
+import PostMeta from '@pw/components/PostMeta';
+import TOC from '@pw/components/TOC';
+import TagList from '@pw/components/TagList';
+import SeriesNav from '@pw/components/SeriesNav';
+import Backlinks from '@pw/components/Backlinks';
+import RelatedPosts from '@pw/components/RelatedPosts';
+import Comments from '@pw/components/Comments';
+import Translations from '@pw/components/Translations';
+import Breadcrumbs from '@pw/components/Breadcrumbs';
+import ContentIslands from '@pw/components/ContentIslands';
+import Cover from '@pw/components/Cover';
+import {
+  config, useLocale, renderNote, urls, articleLd, breadcrumbLd, faqLd, absUrl, siteTitle, type Note,
+} from '../src/runtime/index.ts';
+
+interface Props { note: Note }
+const { note } = Astro.props;
+const d = note.data;
+const { t } = useLocale(d.lang);
+const { Content } = await renderNote(note.id);
+const ogImage = config.seo.ogImages
+  ? { src: urls.og(note.id), width: 1200, height: 630, alt: d.title }
+  : d.cover ? { src: d.cover.src, width: d.cover.width, height: d.cover.height, alt: d.coverAlt ?? d.title } : undefined;
+const crumbs = [
+  { name: siteTitle(d.lang), url: urls.home(d.lang) },
+  ...(d.series ? [{ name: d.series, url: urls.series(d.series, d.lang) }] : d.categories[0] ? [{ name: d.categories[0], url: urls.category(d.categories[0], d.lang) }] : []),
+  { name: d.title, url: d.url },
+];
+const showToc = d.toc && d.headings.length > 0;
+const editUrl = config.editUrl ? `${config.editUrl.replace(/\/?$/, '/')}${d.path.split('/').map(encodeURIComponent).join('/')}` : undefined;
+---
+<Base
+  kind="note"
+  lang={d.lang}
+  path={d.url}
+  title={d.title}
+  description={d.description}
+  canonical={d.canonical}
+  noindex={d.noindex}
+  type="article"
+  image={ogImage}
+  alternates={Object.keys(d.alternates).length ? d.alternates : undefined}
+  switcher={d.alternates}
+  math={d.math}
+  bodyClass={d.cssclasses}
+  article={{ published: d.date, modified: d.updated ?? d.date, tags: d.tags, section: d.categories[0], authors: d.authors }}
+  jsonld={[articleLd(config as never, d, ogImage?.src ?? d.cover?.src), breadcrumbLd(config as never, crumbs), faqLd(d)]}
+>
+  <article class="pw-article" data-pagefind-body>
+    <header class="pw-article-header">
+      <div data-pagefind-ignore><Breadcrumbs items={crumbs} /></div>
+      <h1 class="pw-title" data-pagefind-meta="title">{d.title}</h1>
+      <div data-pagefind-ignore>
+        <PostMeta data={d} />
+        <Translations alternates={d.alternates} lang={d.lang} />
+      </div>
+    </header>
+    {d.cover && <Cover image={d.cover} alt={d.coverAlt ?? ''} />}
+    {showToc && <div data-pagefind-ignore><TOC headings={d.headings} lang={d.lang} maxDepth={config.toc.maxDepth} /></div>}
+    <div class:list={['pw-prose', ...d.cssclasses]}>
+      <Content />
+    </div>
+    <footer class="pw-article-footer" data-pagefind-ignore>
+      <TagList tags={d.tags} lang={d.lang} label={t('post.tags')} />
+      {editUrl && <p class="pw-edit"><a href={editUrl} rel="noopener">{t('post.edit')}</a></p>}
+    </footer>
+  </article>
+  <aside class="pw-after" data-pagefind-ignore>
+    <SeriesNav note={note} />
+    <Backlinks links={d.backlinks} lang={d.lang} />
+    <RelatedPosts links={d.related} lang={d.lang} />
+    <Comments comments={d.comments} lang={d.lang} url={absUrl(config as never, d.url)} title={d.title} enabled={d.commentsEnabled} />
+  </aside>
+  <ContentIslands lang={d.lang} />
+</Base>

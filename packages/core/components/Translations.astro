@@ -1,0 +1,13 @@
+---
+import { config, useLocale, encodePath } from '../src/runtime/index.ts';
+interface Props { alternates: Record<string, string>; lang: string }
+const { alternates, lang } = Astro.props;
+const { t } = useLocale(lang);
+const others = Object.entries(alternates).filter(([l]) => l !== lang);
+---
+{others.length > 0 && (
+  <p class="pw-translations">
+    {t('post.translations')}:{' '}
+    {others.map(([l, url], i) => <>{i > 0 && ' · '}<a href={encodePath(url)} hreflang={l} lang={l}>{config.locales.supported[l]?.label ?? l}</a></>)}
+  </p>
+)}

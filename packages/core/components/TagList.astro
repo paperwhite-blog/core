@@ -1,0 +1,10 @@
+---
+import { urls, encodePath } from '../src/runtime/index.ts';
+interface Props { tags: string[]; lang: string; label?: string }
+const { tags, lang, label } = Astro.props;
+---
+{tags.length > 0 && (
+  <ul class="pw-tags" aria-label={label}>
+    {tags.map((tag) => <li><a href={encodePath(urls.tag(tag, lang))} rel="tag">#{tag}</a></li>)}
+  </ul>
+)}

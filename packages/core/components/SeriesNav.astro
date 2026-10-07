@@ -1,0 +1,24 @@
+---
+import { useLocale, getSeries, urls, encodePath, type Note } from '../src/runtime/index.ts';
+interface Props { note: Note }
+const { note } = Astro.props;
+const { t } = useLocale(note.data.lang);
+const series = note.data.series ? await getSeries(note.data.series, note.data.lang) : [];
+const i = series.findIndex((n) => n.id === note.id);
+const prev = i > 0 ? series[i - 1] : undefined;
+const next = i >= 0 && i < series.length - 1 ? series[i + 1] : undefined;
+---
+{series.length > 1 && (
+  <nav class="pw-series" aria-label={note.data.series}>
+    <p>
+      <a href={encodePath(urls.series(note.data.series!, note.data.lang))}>{t('post.series', { n: i + 1, total: series.length, series: note.data.series! })}</a>
+    </p>
+    <ol>
+      {series.map((s) => <li>{s.id === note.id ? <span aria-current="page">{s.data.title}</span> : <a href={encodePath(s.data.url)}>{s.data.title}</a>}</li>)}
+    </ol>
+    <div class="pw-series-pn">
+      {prev ? <a href={encodePath(prev.data.url)} rel="prev">← {t('post.prevInSeries')}: {prev.data.title}</a> : <span />}
+      {next ? <a href={encodePath(next.data.url)} rel="next">{t('post.nextInSeries')}: {next.data.title} →</a> : <span />}
+    </div>
+  </nav>
+)}

@@ -1,0 +1,20 @@
+---
+import Base from '@pw/layouts/Base';
+import ContentIslands from '@pw/components/ContentIslands';
+import Backlinks from '@pw/components/Backlinks';
+import { config, renderNote, articleLd, type Note } from '../src/runtime/index.ts';
+interface Props { note: Note }
+const { note } = Astro.props;
+const d = note.data;
+const { Content } = await renderNote(note.id);
+---
+<Base kind="note" lang={d.lang} path={d.url} title={d.title} description={d.description} canonical={d.canonical} noindex={d.noindex}
+  alternates={Object.keys(d.alternates).length ? d.alternates : undefined} switcher={d.alternates} math={d.math} bodyClass={d.cssclasses}
+  jsonld={[articleLd(config as never, d)]}>
+  <article class="pw-article pw-page" data-pagefind-body>
+    <header class="pw-article-header"><h1 class="pw-title">{d.title}</h1></header>
+    <div class:list={['pw-prose', ...d.cssclasses]}><Content /></div>
+  </article>
+  <aside class="pw-after" data-pagefind-ignore><Backlinks links={d.backlinks} lang={d.lang} /></aside>
+  <ContentIslands lang={d.lang} />
+</Base>

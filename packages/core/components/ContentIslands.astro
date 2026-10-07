@@ -1,0 +1,10 @@
+---
+/** Enhancements for rendered Markdown: copy buttons, lightbox, link previews. Each is a few hundred bytes. */
+import { useLocale } from '../src/runtime/index.ts';
+interface Props { lang: string }
+const { t } = useLocale(Astro.props.lang);
+---
+<template id="pw-i18n" data-copy={t('code.copy')} data-copied={t('code.copied')} data-close={t('image.close')}></template>
+<script>
+  import '../islands/content.ts';
+</script>

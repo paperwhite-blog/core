@@ -1,0 +1,52 @@
+---
+/** Archived (imported) comments rendered statically with threading; optional live provider island. */
+import { config, useLocale, type Comment } from '../src/runtime/index.ts';
+interface Props { comments: Comment[]; lang: string; url: string; title: string; enabled: boolean }
+const { comments, lang, url, title, enabled } = Astro.props;
+const { t, date } = useLocale(lang);
+const children = new Map<string | null, Comment[]>();
+for (const c of comments) {
+  const k = c.parent && comments.some((x) => x.id === c.parent) ? c.parent : null;
+  children.set(k, [...(children.get(k) ?? []), c]);
+}
+const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => [...w][0]).join('').toUpperCase();
+const hue = (name: string) => [...name].reduce((h, c) => (h * 31 + c.codePointAt(0)!) % 360, 7);
+const provider = config.comments.provider;
+const render = (parent: string | null): Comment[] => children.get(parent) ?? [];
+---
+{enabled && (comments.length > 0 || provider !== 'none') && (
+  <section class="pw-comments" aria-labelledby="pw-comments-h">
+    <h2 id="pw-comments-h">{comments.length ? t('comments.archived') : t('comments.title')}{comments.length > 0 && <span class="pw-count"> · {t('comments.count', { n: comments.length })}</span>}</h2>
+    {comments.length > 0 && (
+      <ol class="pw-comment-list">
+        {render(null).map(function renderComment(c: Comment): unknown {
+          return (
+            <li class="pw-comment" id={`comment-${c.id}`}>
+              <article>
+                <header>
+                  <span class="pw-avatar" aria-hidden="true" style={`--pw-avatar-hue:${hue(c.author)}`}>{initials(c.author)}</span>
+                  {c.url ? <a href={c.url} rel="nofollow ugc noopener" class="pw-comment-author">{c.author}</a> : <span class="pw-comment-author">{c.author}</span>}
+                  {c.date && <time datetime={c.date}>{date(c.date, 'medium')}</time>}
+                </header>
+                <div class="pw-comment-body" dir="auto" set:html={c.html} />
+              </article>
+              {render(c.id).length > 0 && <ol>{render(c.id).map(renderComment)}</ol>}
+            </li>
+          );
+        })}
+      </ol>
+    )}
+    {provider === 'giscus' && config.comments.giscus && (
+      <div class="pw-live-comments" data-pw-giscus={JSON.stringify({ ...config.comments.giscus, lang })} />
+    )}
+    {provider === 'cusdis' && config.comments.cusdis && (
+      <div class="pw-live-comments" id="cusdis_thread" data-host={config.comments.cusdis.host ?? 'https://cusdis.com'} data-app-id={config.comments.cusdis.appId} data-page-id={url} data-page-url={url} data-page-title={title} data-theme="auto" data-pw-cusdis />
+    )}
+    {provider === 'webmentions' && config.comments.webmentions && <div class="pw-live-comments" data-pw-webmentions={url} />}
+  </section>
+)}
+{provider !== 'none' && (
+  <script>
+    import '../islands/comments.ts';
+  </script>
+)}

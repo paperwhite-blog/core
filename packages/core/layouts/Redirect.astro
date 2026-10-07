@@ -1,0 +1,18 @@
+---
+import { config, useLocale, absUrl, encodePath, type HtmlRoute } from '../src/runtime/index.ts';
+interface Props { route: Extract<HtmlRoute, { kind: 'redirect' }> }
+const { route } = Astro.props;
+const { t, lang, dir } = useLocale(route.lang);
+const target = absUrl(config as never, route.to);
+---
+<!doctype html>
+<html lang={lang} dir={dir}>
+  <head>
+    <meta charset="utf-8" />
+    <title>{t('redirect.body', { url: target })}</title>
+    <meta http-equiv="refresh" content={`0; url=${encodePath(route.to)}`} />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href={target} />
+  </head>
+  <body><p><a href={encodePath(route.to)}>{t('redirect.body', { url: target })}</a></p></body>
+</html>

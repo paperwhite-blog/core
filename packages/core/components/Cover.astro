@@ -1,0 +1,13 @@
+---
+import type { ImageInfo } from '../src/runtime/index.ts';
+interface Props { image: ImageInfo; alt: string }
+const { image, alt } = Astro.props;
+const sizes = '(min-width: 64rem) 60rem, 100vw';
+---
+<figure class="pw-cover">
+  <picture>
+    {image.sources.map((s) => <source type={s.type} srcset={s.srcset} sizes={sizes} />)}
+    <img src={image.src} srcset={image.srcset || undefined} sizes={image.srcset ? sizes : undefined} alt={alt}
+      width={image.width || undefined} height={image.height || undefined} loading="eager" fetchpriority="high" decoding="async" />
+  </picture>
+</figure>

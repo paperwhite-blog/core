@@ -1,0 +1,10 @@
+---
+import { encodePath } from '../src/runtime/index.ts';
+interface Props { items: { name: string; url: string }[] }
+const { items } = Astro.props;
+---
+<nav class="pw-breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    {items.map((it, i) => <li>{i < items.length - 1 ? <a href={encodePath(it.url)}>{it.name}</a> : <span aria-current="page">{it.name}</span>}</li>)}
+  </ol>
+</nav>

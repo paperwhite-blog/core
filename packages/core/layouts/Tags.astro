@@ -1,0 +1,13 @@
+---
+import Base from '@pw/layouts/Base';
+import { config, useLocale, collectionLd, encodePath, type HtmlRoute } from '../src/runtime/index.ts';
+interface Props { route: Extract<HtmlRoute, { kind: 'tags' }> }
+const { route } = Astro.props;
+const { t, digits } = useLocale(route.lang);
+---
+<Base kind="tags" lang={route.lang} path={route.path} title={t('tags.title')} description={t('tags.title')} jsonld={[collectionLd(config as never, t('tags.title'), route.path, route.lang)]}>
+  <header class="pw-list-header"><h1 class="pw-title">{t('tags.title')}</h1></header>
+  <ul class="pw-tag-cloud">
+    {route.tags.map((tg) => <li><a href={encodePath(tg.url)} rel="tag">#{tg.tag}</a> <span class="pw-count">{digits(tg.count)}</span></li>)}
+  </ul>
+</Base>
