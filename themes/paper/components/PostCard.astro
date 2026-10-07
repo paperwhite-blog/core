@@ -1,0 +1,14 @@
+---
+/** Paper's PostCard: overrides the core default to show a theme slot written with Tailwind utilities. */
+import { encodePath, useLocale, type Note } from '@paperwhite/core/runtime';
+interface Props { note: Note; headingLevel?: 2 | 3 }
+const { note, headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as 'h2';
+const d = note.data;
+const { date, t } = useLocale(d.lang);
+---
+<article class="group grid gap-1" lang={d.lang} dir={d.dir}>
+  {d.date && <time class="text-sm text-muted tabular-nums" datetime={d.date.toISOString()}>{date(d.date)} · {t('post.readingTime', { n: d.readingTime })}</time>}
+  <H class="m-0 text-xl leading-snug font-semibold text-balance"><a class="text-fg no-underline group-hover:text-accent" href={encodePath(d.url)}>{d.title}</a></H>
+  <p class="m-0 text-muted">{d.description}</p>
+</article>

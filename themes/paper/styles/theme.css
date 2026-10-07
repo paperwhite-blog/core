@@ -1,0 +1,66 @@
+/* Paper theme: tokens only (plus a few typographic choices). */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/vazirmatn/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+
+/* Metric-matched local fallbacks keep the font swap from shifting layout (CLS). */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Roboto');
+  ascent-override: 90.2%;
+  descent-override: 22.48%;
+  line-gap-override: 0%;
+  size-adjust: 107.4%;
+}
+@font-face {
+  font-family: 'Vazirmatn Fallback';
+  src: local('Tahoma'), local('Arial');
+  ascent-override: 105%;
+  descent-override: 52%;
+  line-gap-override: 0%;
+  size-adjust: 103%;
+}
+
+:root {
+  --pw-bg: #fbfaf7;
+  --pw-fg: #1c1917;
+  --pw-muted: #605952;
+  --pw-accent: #a4440f;
+  --pw-border: #e4ded4;
+  --pw-surface: #f3efe8;
+  --pw-mark: #fde68a;
+  --pw-code-bg: #f1ece3;
+  --pw-font-sans: 'Inter Variable', 'Inter Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --pw-font-rtl: 'Vazirmatn Variable', 'Vazirmatn Fallback', 'Inter Variable', Tahoma, sans-serif;
+  --pw-font-mono: 'JetBrains Mono Variable', ui-monospace, Menlo, monospace;
+  --pw-measure: 41rem;
+  --pw-radius: 0.375rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --pw-bg: #161412;
+    --pw-fg: #ece7df;
+    --pw-muted: #a8a096;
+    --pw-accent: #f0a46b;
+    --pw-border: #36312b;
+    --pw-surface: #221f1b;
+    --pw-mark: #6b4e0f;
+    --pw-code-bg: #221f1b;
+  }
+}
+:root[data-theme='dark'] {
+  --pw-bg: #161412;
+  --pw-fg: #ece7df;
+  --pw-muted: #a8a096;
+  --pw-accent: #f0a46b;
+  --pw-border: #36312b;
+  --pw-surface: #221f1b;
+  --pw-mark: #6b4e0f;
+  --pw-code-bg: #221f1b;
+}
+
+body { font-size: 1.0625rem; font-feature-settings: 'cv11', 'ss01'; }
+:lang(fa) body, body:lang(fa) { font-size: 1.075rem; font-feature-settings: normal; }
+.pw-brand { letter-spacing: -0.01em; }
+.pw-header { border-block-end: 1px solid var(--pw-border); }

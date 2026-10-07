@@ -1,0 +1,9 @@
+---
+/** Paper: preload the fonts the first paint needs (Latin always, Vazirmatn on RTL pages). */
+import inter from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
+import vazir from '@fontsource-variable/vazirmatn/files/vazirmatn-arabic-wght-normal.woff2?url';
+interface Props { lang: string }
+const rtl = ['fa', 'ar', 'ur'].includes(Astro.props.lang);
+---
+<link rel="preload" href={inter} as="font" type="font/woff2" crossorigin />
+{rtl && <link rel="preload" href={vazir} as="font" type="font/woff2" crossorigin />}
