@@ -1,0 +1,13 @@
+import { defineConfig } from '@paperwhite/core/config';
+
+export default defineConfig({
+  site: {
+    url: 'https://paperwhite.dev',
+    title: 'PaperWhite',
+    description: 'Obsidian in, Lighthouse 100 out. A static blog generator for Markdown vaults.',
+  },
+  contentDir: './content',
+  toc: { minHeadings: 2 },
+  seo: { ogImages: true },
+  editUrl: 'https://github.com/paperwhite/paperwhite/edit/main/docs/content/',
+});
