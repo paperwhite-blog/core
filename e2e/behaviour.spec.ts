@@ -8,9 +8,32 @@ test.describe('i18n and RTL', () => {
     await expect(page.locator('.pw-meta time')).toHaveText('۱۴ مهر ۱۴۰۳');
     await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute('href', 'https://paperwhite.example/hello-world/');
   });
+  test('RTL leading is set on blocks, not inline children', async ({ page }) => {
+    await page.goto('/fa/%D8%B3%D9%84%D8%A7%D9%85-%D8%AF%D9%86%DB%8C%D8%A7/');
+    // themes commonly give paragraphs their own leading; inline children must follow it, not the root's
+    await page.addStyleTag({ content: '.pw-prose p { line-height: 1.6 }' });
+    const m = await page.evaluate(() => {
+      const ratio = (el: Element) => parseFloat(getComputedStyle(el).lineHeight) / parseFloat(getComputedStyle(el).fontSize);
+      const inline = [...document.querySelectorAll('.pw-prose :is(p, li, h2, h3) :is(strong, em, a, code)')];
+      const h2 = document.querySelector('.pw-prose h2')!;
+      return {
+        inline: inline.length,
+        mismatched: inline.filter((el) => Math.abs(ratio(el) - ratio(el.parentElement!)) > 0.01).map((el) => `${el.outerHTML} ${ratio(el)}`),
+        h2: h2.getBoundingClientRect().height / parseFloat(getComputedStyle(h2).fontSize),
+        body: ratio(document.body),
+      };
+    });
+    expect(m.inline).toBeGreaterThan(3);
+    expect(m.mismatched).toEqual([]);
+    expect(m.h2).toBeLessThan(1.5); // one line at the heading's own leading, not the body's ≈1.95
+    expect(m.body).toBeGreaterThan(1.9); // the page itself keeps the tall RTL leading
+  });
   test('code stays LTR inside RTL pages', async ({ page }) => {
     await page.goto('/fa/%DB%8C%D8%A7%D8%AF%D8%AF%D8%A7%D8%B4%D8%AA-%D8%AA%D8%B1%DA%A9%DB%8C%D8%A8%DB%8C/');
     expect(await page.locator('pre').first().evaluate((el) => getComputedStyle(el).direction)).toBe('ltr');
+    // highlighted tokens keep the mono font instead of picking up the RTL font from :lang(fa)
+    const fonts = await page.locator('pre').first().evaluate((pre) => [pre, pre.querySelector('code span span')!].map((el) => getComputedStyle(el).fontFamily));
+    expect(fonts[1]).toBe(fonts[0]);
   });
 });
 

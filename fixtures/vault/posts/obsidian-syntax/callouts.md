@@ -15,6 +15,21 @@ series_order: 3
 > [!warning]
 > Careful with that axe.
 
+> [!abstract]
+> Summaries, abstracts and TL;DRs.
+
+> [!success]
+> It worked.
+
+> [!help]
+> Help callouts share the question color.
+
+> [!failure]
+> It did not work.
+
+> [!quote]
+> Quotes are set in a neutral color.
+
 > [!recipe] A custom type
 > Unknown types still render with the default style.
 

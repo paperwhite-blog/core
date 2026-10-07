@@ -49,8 +49,15 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
-  :lang(fa), :lang(ar), :lang(ur) { font-family: var(--pw-font-rtl); line-height: var(--pw-leading-rtl); }
-  :lang(fa) code, :lang(fa) pre, :lang(ar) code, :lang(ar) pre { font-family: var(--pw-font-mono); }
+  :lang(fa), :lang(ar), :lang(ur) { font-family: var(--pw-font-rtl); }
+  :is(:lang(fa), :lang(ar), :lang(ur)) :is(code, kbd, samp, pre, pre *, code *) { font-family: var(--pw-font-mono); }
+  /*
+   * RTL leading is set where the language is declared and inherited from there. `:lang()` would also
+   * match inline children (strong, links, heading anchors) and give them the tall body leading, which
+   * stretches every line they sit on. body needs its own rule because it sets --pw-leading directly.
+   */
+  :is([lang|='fa'], [lang|='ar'], [lang|='ur']):not(a, abbr, b, bdi, bdo, cite, code, em, i, kbd, mark, q, s, samp, small, span, strong, sub, sup, time, u),
+  :is(:lang(fa), :lang(ar), :lang(ur)) body { line-height: var(--pw-leading-rtl); }
   a { color: var(--pw-accent); text-underline-offset: 0.18em; text-decoration-thickness: 0.06em; }
   a:hover { text-decoration-thickness: 0.12em; }
   img, svg, video { max-inline-size: 100%; block-size: auto; }
@@ -94,7 +101,8 @@
 .pw-cover { margin: 0 0 2rem; }
 .pw-cover img { inline-size: 100%; border-radius: var(--pw-radius); }
 .pw-article-footer { margin-block: 2.5rem 1rem; padding-block-start: 1.5rem; border-block-start: 1px solid var(--pw-border); }
-.pw-tags a { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--pw-surface); color: var(--pw-muted); text-decoration: none; font-size: 0.875rem; }
+/* pills sit on --pw-surface, so plain --pw-muted can drop below WCAG AA; pulling toward --pw-fg keeps them readable on any palette */
+.pw-tags a { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--pw-surface); color: color-mix(in oklab, var(--pw-muted) 45%, var(--pw-fg)); text-decoration: none; font-size: 0.875rem; }
 .pw-after > section, .pw-series { margin-block: 2.5rem; }
 .pw-after h2 { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pw-muted); }
 :lang(fa) .pw-after h2 { text-transform: none; letter-spacing: 0; }
@@ -161,7 +169,7 @@ ol.pw-list { list-style: none; counter-reset: s; }
 .pw-prose a.pw-zoom { display: inline-block; cursor: zoom-in; }
 .pw-prose :not(pre) > code { font-family: var(--pw-font-mono); font-size: 0.875em; padding: 0.12em 0.35em; border-radius: 0.3em; background: var(--pw-code-bg); unicode-bidi: isolate; }
 .pw-prose .unresolved { color: var(--pw-muted); text-decoration: underline dotted; cursor: help; }
-.pw-prose a.tag { text-decoration: none; padding: 0.05em 0.4em; border-radius: 999px; background: var(--pw-surface); font-size: 0.9em; }
+.pw-prose a.tag { text-decoration: none; padding: 0.05em 0.4em; border-radius: 999px; background: var(--pw-surface); color: color-mix(in oklab, var(--pw-accent) 45%, var(--pw-fg)); font-size: 0.9em; }
 .pw-prose .task-list-item { list-style: none; }
 .pw-prose .task-list-item input { margin-inline: -1.3em 0.4em; }
 .pw-prose .footnotes { font-size: 0.9em; color: var(--pw-muted); border-block-start: 1px solid var(--pw-border); padding-block-start: 1em; margin-block-start: 3em; }
@@ -193,7 +201,11 @@ ol.pw-list { list-style: none; counter-reset: s; }
 
 /* callouts */
 .callout { --callout: 8, 109, 221; margin-inline: 0; padding: 0.75rem 1rem; border-inline-start: 4px solid rgb(var(--callout)); border-radius: var(--pw-radius); background: rgba(var(--callout), 0.08); }
-.callout-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: rgb(var(--callout)); }
+/*
+ * --callout hues are mid-tone and fall below WCAG AA as text on both light and dark pages. Mixing with --pw-fg
+ * darkens them on light palettes and lightens them on dark ones. Themes can tune --pw-callout-title-mix.
+ */
+.callout-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: color-mix(in oklab, rgb(var(--callout)) var(--pw-callout-title-mix, 60%), var(--pw-fg)); }
 .callout-title-icon, .callout-fold-icon { display: inline-flex; flex: none; }
 .callout-content > :first-child { margin-block-start: 0.5rem; }
 .callout-content > :last-child { margin-block-end: 0; }
