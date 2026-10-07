@@ -12,7 +12,7 @@ pnpm exec paperwhite update             # fetch it and replace pw-core/ and pw-d
 1. compares your version with the latest release (or newest tag);
 2. refuses to continue if `pw-core/` or `pw-docs/` have uncommitted changes (you were not supposed to edit them; `--force` overrides);
 3. downloads the release tarball and replaces the **contents** of `pw-core/` and `pw-docs/` only. `pw-core/node_modules` is kept, `pw-core/test` is not copied into a site that `init` slimmed down, and nothing outside the two folders is touched: your config, content, themes, plugins, overrides and workflows stay as they are;
-4. runs `pnpm install` so dependency changes land;
+4. runs `pnpm install` so dependency changes land (the root `package.json` is yours, so a new Astro major version is one line for you to bump there; the changelog says when);
 5. points you at `pw-docs/changelog.md`.
 
 Commit the result like any other change. `dev` and `build` print a one-line notice once a day when a newer version exists (`PAPERWHITE_NO_UPDATE_CHECK=1` disables it).

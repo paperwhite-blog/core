@@ -181,8 +181,8 @@ export const init = defineCommand({
   async run({ args }) {
     const root = path.resolve(args.site ?? '.');
     if (!fs.existsSync(path.join(root, 'pw-core/package.json'))) throw new Error(`${root} is not a clone of PaperWhite (no pw-core/). Clone https://github.com/paperwhite-blog/core first.`);
-    const interactive = !args.yes && process.stdin.isTTY;
-    const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : undefined;
+    if (!args.yes && !process.stdin.isTTY) throw new Error('No terminal to ask questions in. Pass --yes together with --title, --url, --deploy … to run init non-interactively.');
+    const rl = args.yes ? undefined : createInterface({ input: process.stdin, output: process.stdout });
     const ask = async (label: string, def: string | undefined, given?: string): Promise<string> => {
       if (given !== undefined) return given;
       if (!rl) return def ?? '';

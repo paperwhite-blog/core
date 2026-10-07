@@ -99,7 +99,7 @@ Any file in `themes/<name>/components/` or `layouts/` replaces PaperWhite's defa
 2. `themes/<name>/components/Header.astro`
 3. PaperWhite's default in `pw-core/components/`
 
-Components: `Header`, `Footer`, `PostCard`, `PostMeta`, `TOC`, `Comments`, `Pagination`, `Backlinks`, `RelatedPosts`, `SeriesNav`, `Translations`, `TagList`, `Breadcrumbs`, `SearchBox`, `ThemeToggle`, `Cover`, `HeadExtra`, `Seo`, `ContentIslands`. Layouts: `Base`, `Post`, `Page`, `Home`, `Taxonomy`, `Archive`, `Tags`, `Search`, `NotFound`.
+Components: `Header`, `Footer`, `PostCard`, `PostMeta`, `TOC`, `Comments`, `Pagination`, `Backlinks`, `RelatedPosts`, `SeriesNav`, `Translations`, `TagList`, `Breadcrumbs`, `SearchBox`, `ThemeToggle`, `Cover`, `HeadExtra`, `ContentIslands`. Layouts: `Base`, `Post`, `Page`, `Home`, `Taxonomy`, `Archive`, `Tags`, `Search`, `NotFound`.
 
 Import what you need from `@paperwhite/core/runtime` (`useLocale`, `encodePath`, `config`, `getNotes`, note types) and wrap instead of copying when you can:
 

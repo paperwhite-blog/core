@@ -20,5 +20,5 @@
 - The Mermaid plugin needs a headless browser at build time; results are cached. Excalidraw uses an exported SVG when present, otherwise a clean built-in renderer without the hand-drawn style.
 - The WordPress importer reads the standard WXR export; shortcodes other than `[caption]` are dropped.
 - Astro's module resolution treats absolute paths outside its project root as root-relative unless they share an ancestor folder with it, so `pw-core/` must live inside the site repository (it does, by construction).
-- pnpm is required (the workspace protocol links `pw-core/`).
+- pnpm is required (the workspace protocol links `pw-core/`). A blog also installs `pw-core`'s own devDependencies (vitest, typescript, vite) because pnpm installs them for workspace packages; they are unused there and harmless.
 - Visual-regression baselines are committed for macOS; CI generates Linux baselines on first run.
