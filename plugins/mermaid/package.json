@@ -1,0 +1,12 @@
+{
+  "name": "@paperwhite/plugin-mermaid",
+  "version": "0.1.0",
+  "description": "Render ```mermaid fences to static SVG at build time (zero runtime JS).",
+  "type": "module",
+  "license": "MIT",
+  "exports": { ".": "./src/index.ts" },
+  "files": ["src"],
+  "peerDependencies": { "@paperwhite/core": "^0.1.0", "playwright": "^1.40.0" },
+  "dependencies": { "mermaid-isomorphic": "^3.1.0" },
+  "devDependencies": { "@paperwhite/core": "workspace:*", "playwright": "^1.63.0" }
+}
