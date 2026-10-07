@@ -11,6 +11,7 @@ import { resolveTheme, listThemes } from '../src/theme/resolve.ts';
 import { readUserConfig } from '../src/config/load.ts';
 import { installFromDir, addPluginToConfig, detectKind } from '../src/cli/commands/add.ts';
 import { parseGitHubSource, compareSemver, extractTarGz } from '../src/cli/github.ts';
+import { applyUpdate, readLocalVersion } from '../src/cli/commands/update.ts';
 import { gzipSync } from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { extractExternalLinks, checkExternalLinks } from '../src/cli/external.ts';
@@ -191,6 +192,50 @@ describe('add', () => {
     extractTarGz(gzipSync(tar), dest);
     expect(fs.existsSync(path.join(dest, 'theme.json'))).toBe(true);
     expect(detectKind(dest).kind).toBe('theme');
+  });
+});
+
+describe('update', () => {
+  const core = (dir: string, version: string, withTests: boolean) => {
+    fs.mkdirSync(path.join(dir, 'pw-core/src'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'pw-core/package.json'), JSON.stringify({ name: '@paperwhite/core', version }));
+    fs.writeFileSync(path.join(dir, 'pw-core/src/index.ts'), `export const v = '${version}';`);
+    if (withTests) {
+      fs.mkdirSync(path.join(dir, 'pw-core/test'), { recursive: true });
+      fs.writeFileSync(path.join(dir, 'pw-core/test/x.test.ts'), '');
+    }
+    fs.mkdirSync(path.join(dir, 'pw-docs'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'pw-docs/changelog.md'), `# ${version}`);
+  };
+  it('replaces pw-core and pw-docs, keeps node_modules and the user\'s files, respects a slimmed site', () => {
+    const site = tmp();
+    core(site, '0.1.0', false);
+    fs.mkdirSync(path.join(site, 'pw-core/node_modules/dep'), { recursive: true });
+    fs.writeFileSync(path.join(site, 'pw-core/src/old.ts'), '');
+    fs.mkdirSync(path.join(site, 'content/posts'), { recursive: true });
+    fs.writeFileSync(path.join(site, 'content/posts/a.md'), 'mine');
+    fs.writeFileSync(path.join(site, 'paperwhite.config.yaml'), 'site: {url: https://x.y, title: X}');
+    const src = tmp();
+    core(src, '0.2.0', true);
+    const r = applyUpdate(site, src);
+    expect(r).toMatchObject({ from: '0.1.0', to: '0.2.0', replaced: ['pw-core', 'pw-docs'], skippedTests: true });
+    expect(readLocalVersion(site)).toBe('0.2.0');
+    expect(fs.readFileSync(path.join(site, 'pw-core/src/index.ts'), 'utf8')).toContain('0.2.0');
+    expect(fs.existsSync(path.join(site, 'pw-core/src/old.ts'))).toBe(false);
+    expect(fs.existsSync(path.join(site, 'pw-core/node_modules/dep'))).toBe(true);
+    expect(fs.existsSync(path.join(site, 'pw-core/test'))).toBe(false);
+    expect(fs.readFileSync(path.join(site, 'pw-docs/changelog.md'), 'utf8')).toBe('# 0.2.0');
+    expect(fs.readFileSync(path.join(site, 'content/posts/a.md'), 'utf8')).toBe('mine');
+    expect(fs.readFileSync(path.join(site, 'paperwhite.config.yaml'), 'utf8')).toContain('title: X');
+  });
+  it('copies tests when the site still has them, and rejects a non-core source', () => {
+    const site = tmp();
+    core(site, '0.1.0', true);
+    const src = tmp();
+    core(src, '0.3.0', true);
+    expect(applyUpdate(site, src).skippedTests).toBe(false);
+    expect(fs.existsSync(path.join(site, 'pw-core/test/x.test.ts'))).toBe(true);
+    expect(() => applyUpdate(site, tmp())).toThrow(/not a PaperWhite core checkout/);
   });
 });
 

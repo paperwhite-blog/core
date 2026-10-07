@@ -4,6 +4,7 @@ import pc from 'picocolors';
 import path from 'node:path';
 import { astroBin, resolveSite } from '../site.ts';
 import { ensureAstroRoot } from '../astro-root.ts';
+import { cachedUpdateNotice } from './update.ts';
 
 const siteArg = { type: 'string', description: 'Site folder (default: nearest paperwhite.config.yaml)' } as const;
 
@@ -11,6 +12,8 @@ function run(args: string[], site: string | undefined, env: Record<string, strin
   const root = resolveSite(site);
   if (root !== process.cwd()) console.log(pc.dim(`site: ${path.relative(process.cwd(), root) || '.'}`));
   const astroRoot = ensureAstroRoot(root);
+  // once a day, one line, never blocking: is a newer core available?
+  void cachedUpdateNotice(root).then((n) => n && console.log(pc.yellow(n)));
   return new Promise((resolve) => {
     const child = spawn(astroBin(root), [args[0]!, '--root', astroRoot, ...args.slice(1)], { stdio: 'inherit', cwd: root, env: { ...process.env, ...env } });
     child.on('exit', (code) => resolve(code ?? 1));
