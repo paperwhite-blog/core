@@ -18,7 +18,7 @@ pnpm install
 pnpm dev
 ```
 
-`init` writes a typed `paperwhite.config.ts`, an Astro config, and a starter vault in `content/`.
+`init` writes a typed `paperwhite.config.ts`, an Astro config, a starter vault in `content/` and an empty `themes/` folder. The site uses the built-in `paper` theme until you add your own — see [[Themes]].
 
 ## Point it at your vault
 

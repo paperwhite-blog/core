@@ -9,5 +9,5 @@ export default defineConfig({
   contentDir: './content',
   toc: { minHeadings: 2 },
   seo: { ogImages: true },
-  editUrl: 'https://github.com/paperwhite/paperwhite/edit/main/docs/content/',
+  editUrl: 'https://github.com/paperwhite-blog/core/edit/main/docs/content/',
 });
