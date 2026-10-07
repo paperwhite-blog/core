@@ -1,0 +1,15 @@
+{
+  "name": "paperwhite-bench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "build": "astro build",
+    "bench": "node generate.mjs && node run.mjs"
+  },
+  "dependencies": {
+    "@paperwhite/core": "workspace:*",
+    "astro": "^7.3.5",
+    "paperwhite-theme-paper": "workspace:*"
+  }
+}
