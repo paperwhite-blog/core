@@ -22,7 +22,7 @@ export const newNote = defineCommand({
     lang: { type: 'string', description: 'Locale (e.g. fa)' },
     page: { type: 'boolean', description: 'Create a page instead of a post' },
     dir: { type: 'string', description: 'Sub-folder inside posts/' },
-    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.ts)' },
+    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.yaml)' },
   },
   async run({ args }) {
     const config = await loadSiteConfig(resolveSite(args.site));

@@ -13,7 +13,7 @@ export const check = defineCommand({
     force: { type: 'boolean', description: 'Ignore the external link cache' },
     strict: { type: 'boolean', description: 'Exit non-zero on warnings too' },
     json: { type: 'boolean', description: 'Print the report as JSON' },
-    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.ts)' },
+    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.yaml)' },
   },
   async run({ args }) {
     const root = resolveSite(args.site);

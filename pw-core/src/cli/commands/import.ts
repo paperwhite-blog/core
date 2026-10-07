@@ -12,7 +12,7 @@ export const importCmd = defineCommand({
     download: { type: 'boolean', description: 'Download attachments into attachments/' },
     drafts: { type: 'boolean', description: 'Import drafts as draft: true' },
     lang: { type: 'string', description: 'Set lang on imported notes' },
-    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.ts)' },
+    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.yaml)' },
   },
   async run({ args }) {
     const root = process.cwd();
