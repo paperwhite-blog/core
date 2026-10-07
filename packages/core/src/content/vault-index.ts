@@ -167,6 +167,7 @@ export async function buildIndex(config: ResolvedConfig, opts: { now?: Date } = 
   const commentsPrefix = `${config.dirs.comments}/`;
 
   const mdFiles: string[] = [];
+  const parsedNotes: IndexedNote[] = [];
   for (const rel of all.sort()) {
     if (isIgnored(rel)) continue;
     if (rel.endsWith('.md') && !rel.endsWith('.excalidraw.md') && !rel.startsWith(commentsPrefix)) mdFiles.push(rel);
@@ -238,9 +239,12 @@ export async function buildIndex(config: ResolvedConfig, opts: { now?: Date } = 
         mtime: stat.mtime,
       };
       if (n.fmError) warnings.push(`${rel}: frontmatter ${n.fmError}`);
-      notes.set(id, n);
+      parsedNotes.push(n);
     }),
   );
+  // Insert in a stable order: files are read concurrently, and everything derived from map
+  // iteration (backlinks, related posts, graph, warnings) must not depend on I/O timing.
+  for (const n of parsedNotes.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) notes.set(n.id, n);
 
   // URLs + duplicate detection (deterministic order)
   const seenUrl = new Map<string, string>();
