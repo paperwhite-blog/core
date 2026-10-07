@@ -1,12 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { createRequire } from 'node:module';
 import * as satoriModule from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import type { ImageInfo } from '../types.ts';
-
-const require = createRequire(import.meta.url);
 
 // satori may be loaded as ESM or (when externalized by absolute path) as CJS.
 type SatoriFn = typeof import('satori').default;
@@ -16,18 +13,21 @@ const satori: SatoriFn = ((satoriModule as unknown as { default?: { default?: Sa
 
 let fontsPromise: Promise<{ name: string; data: Buffer; weight: 400 | 700; style: 'normal' }[]> | undefined;
 
-/** satori reads TTF/OTF/WOFF (not WOFF2); fontsource ships WOFF alongside WOFF2. */
-function fonts() {
+/** Font files for satori (TTF/OTF/WOFF, not WOFF2), resolved by the integration from core's own dependencies. */
+export interface OgFonts {
+  inter: string;
+  vazirmatn: string;
+}
+
+function fonts(dirs: OgFonts) {
   fontsPromise ??= (async () => {
-    const inter = path.dirname(require.resolve('@fontsource/inter/package.json'));
-    const vazir = path.dirname(require.resolve('@fontsource/vazirmatn/package.json'));
     const load = (dir: string, f: string) => fs.readFile(path.join(dir, 'files', f));
     return [
-      { name: 'Inter', data: await load(inter, 'inter-latin-400-normal.woff'), weight: 400 as const, style: 'normal' as const },
-      { name: 'Inter', data: await load(inter, 'inter-latin-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
-      { name: 'Vazirmatn', data: await load(vazir, 'vazirmatn-arabic-400-normal.woff'), weight: 400 as const, style: 'normal' as const },
-      { name: 'Vazirmatn', data: await load(vazir, 'vazirmatn-arabic-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
-      { name: 'Vazirmatn', data: await load(vazir, 'vazirmatn-latin-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
+      { name: 'Inter', data: await load(dirs.inter, 'inter-latin-400-normal.woff'), weight: 400 as const, style: 'normal' as const },
+      { name: 'Inter', data: await load(dirs.inter, 'inter-latin-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
+      { name: 'Vazirmatn', data: await load(dirs.vazirmatn, 'vazirmatn-arabic-400-normal.woff'), weight: 400 as const, style: 'normal' as const },
+      { name: 'Vazirmatn', data: await load(dirs.vazirmatn, 'vazirmatn-arabic-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
+      { name: 'Vazirmatn', data: await load(dirs.vazirmatn, 'vazirmatn-latin-700-normal.woff'), weight: 700 as const, style: 'normal' as const },
     ];
   })();
   return fontsPromise;
@@ -44,6 +44,7 @@ export interface OgInput {
   tags: string[];
   cover?: ImageInfo;
   root: string;
+  fonts: OgFonts;
 }
 
 /**
@@ -129,7 +130,7 @@ export async function renderOgImage(input: OgInput): Promise<Buffer> {
         : [h('div', { width: 24, height: '100%', background: '#b45309' })]),
     ],
   );
-  const svg = await satori(tree as never, { width: 1200, height: 630, fonts: await fonts() });
+  const svg = await satori(tree as never, { width: 1200, height: 630, fonts: await fonts(input.fonts) });
   // loadSystemFonts:false — text is already outlined by satori; scanning system fonts cost ~110 ms per image.
   const png = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 }, font: { loadSystemFonts: false } }).render().asPng();
   await fs.mkdir(path.dirname(cacheFile), { recursive: true });

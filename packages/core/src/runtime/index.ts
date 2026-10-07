@@ -1,4 +1,4 @@
-export { config, theme, strings } from 'virtual:paperwhite/config';
+export { config, theme, strings, paths } from 'virtual:paperwhite/config';
 export * from './notes.ts';
 export * from './routes.ts';
 export * from './i18n.ts';

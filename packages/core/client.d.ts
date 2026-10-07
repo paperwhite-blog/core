@@ -6,6 +6,8 @@ declare module 'virtual:paperwhite/config' {
   export const theme: ThemeManifest;
   /** merged UI strings (core → theme → site) per locale */
   export const strings: Record<string, Record<string, string>>;
+  /** absolute paths the integration resolved at config time (core's own dependencies) */
+  export const paths: { ogFonts: { inter: string; vazirmatn: string } };
 }
 
 declare module '@pw/components/*' {
