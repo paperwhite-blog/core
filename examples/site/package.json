@@ -1,0 +1,22 @@
+{
+  "name": "example-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "build:strict": "PAPERWHITE_STRICT=1 astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@paperwhite/core": "workspace:*",
+    "astro": "^7.3.5",
+    "paperwhite-theme-paper": "workspace:*"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@emnapi/core": "^1.11.3",
+    "@emnapi/runtime": "^1.11.3",
+    "typescript": "~5.9.3"
+  }
+}
