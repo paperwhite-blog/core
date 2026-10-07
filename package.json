@@ -28,6 +28,7 @@
     "check:audit": "node scripts/assert-audit.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.0",
