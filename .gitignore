@@ -8,8 +8,8 @@ coverage/
 test-results/
 playwright-report/
 .lighthouseci/
-bench/vault/
-e2e/__screenshots__/**/*-actual.png
-e2e/__screenshots__/**/*-diff.png
+dev/bench/vault/
+dev/e2e/__screenshots__/**/*-actual.png
+dev/e2e/__screenshots__/**/*-diff.png
 .vitest/
 .claude/

@@ -22,9 +22,8 @@ jobs:
         run: pnpm test
       - name: Typecheck
         run: |
-          pnpm --filter @paperwhite/core exec tsc -p tsconfig.json
-          pnpm --filter paperwhite exec tsc -p tsconfig.json
-          pnpm --filter example-site exec astro-check --root ../../packages/core --tsconfig ../../packages/core/tsconfig.astro.json
+          pnpm typecheck
+          pnpm --filter fixture-site exec astro-check --root ../../pw-core --tsconfig ../../pw-core/tsconfig.astro.json
 
   build:
     runs-on: ubuntu-latest
@@ -36,22 +35,22 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: Build fixture site
-        run: pnpm site:build
+        run: pnpm build
       - name: Audit finds exactly the deliberate fixture errors
-        run: node scripts/assert-audit.mjs
+        run: node dev/assert-audit.mjs
       - name: Strict mode fails on those errors
         run: |
-          if pnpm --filter example-site run build:strict; then echo "strict build should have failed"; exit 1; fi
+          if pnpm --filter fixture-site run build:strict; then echo "strict build should have failed"; exit 1; fi
       - name: Output contract
         run: |
-          cd examples/site/dist
+          cd dev/fixture-site/dist
           for f in sitemap-index.xml sitemap-en-1.xml sitemap-fa-1.xml rss.xml atom.xml feed.json fa/rss.xml graph.json api/posts.json \
                    robots.txt humans.txt .well-known/security.txt llms.txt _redirects vercel.json nginx-redirects.conf pagefind/pagefind.js \
                    og/posts/hello-world.png 2019/05/old-slug/index.html; do
             test -s "$f" || { echo "missing $f"; exit 1; }
           done
       - uses: actions/upload-artifact@v4
-        with: { name: site-dist, path: examples/site/dist, retention-days: 7 }
+        with: { name: site-dist, path: dev/fixture-site/dist, retention-days: 7 }
 
   e2e:
     needs: build
@@ -63,13 +62,13 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
-        with: { name: site-dist, path: examples/site/dist }
+        with: { name: site-dist, path: dev/fixture-site/dist }
       - run: pnpm exec playwright install --with-deps chromium
       # Linux baselines are generated on first run (macOS baselines are committed separately).
-      - run: pnpm exec playwright test --update-snapshots=missing
+      - run: pnpm exec playwright test -c dev/e2e/playwright.config.ts --update-snapshots=missing
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: playwright, path: "e2e/__screenshots__\ntest-results", retention-days: 7 }
+        with: { name: playwright, path: "dev/e2e/__screenshots__\ntest-results", retention-days: 7 }
 
   lighthouse:
     needs: build
@@ -81,7 +80,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
-        with: { name: site-dist, path: examples/site/dist }
+        with: { name: site-dist, path: dev/fixture-site/dist }
       - name: Lighthouse ≥ 95 on all categories (mobile)
         run: pnpm lhci
       - uses: actions/upload-artifact@v4

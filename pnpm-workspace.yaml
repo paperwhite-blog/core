@@ -1,8 +1,7 @@
 packages:
-  - packages/*
-  - examples/*
+  - pw-core
+  - dev/*
   - docs
-  - bench
 onlyBuiltDependencies:
   - sharp
   - esbuild

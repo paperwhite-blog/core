@@ -14,29 +14,25 @@
     "new": "paperwhite new",
     "docs:dev": "paperwhite dev --site docs",
     "docs:build": "paperwhite build --site docs",
-    "site:dev": "paperwhite dev",
-    "site:build": "paperwhite build",
-    "link-cli": "node scripts/link-cli.mjs",
-    "unlink-cli": "node scripts/link-cli.mjs --unlink",
-    "build:packages": "pnpm --filter paperwhite run build",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "pnpm --filter @paperwhite/core exec tsc -p tsconfig.json && pnpm --filter paperwhite exec tsc -p tsconfig.json",
-    "e2e": "playwright test",
-    "lhci": "lhci autorun --config=lighthouserc.cjs",
+    "test": "pnpm --filter @paperwhite/core test",
+    "test:watch": "pnpm --filter @paperwhite/core test:watch",
+    "typecheck": "pnpm --filter @paperwhite/core typecheck",
+    "e2e": "playwright test -c dev/e2e/playwright.config.ts",
+    "lhci": "lhci autorun --config=dev/lighthouserc.cjs",
     "bench": "pnpm --filter paperwhite-bench run bench",
-    "check:audit": "node scripts/assert-audit.mjs"
+    "check:audit": "node dev/assert-audit.mjs",
+    "link-cli": "node dev/link-cli.mjs",
+    "unlink-cli": "node dev/link-cli.mjs --unlink"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@lhci/cli": "^0.15.1",
+    "@paperwhite/core": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.0",
-    "typescript": "~5.9.3",
-    "vitest": "^5.0.3",
-    "paperwhite": "workspace:*"
+    "typescript": "~5.9.3"
   },
   "paperwhite": {
-    "site": "examples/site"
+    "site": "dev/fixture-site"
   }
 }
