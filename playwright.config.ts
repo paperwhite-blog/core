@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Override with E2E_PORT if 4330 is taken by something else.
+const port = Number(process.env.E2E_PORT ?? 4330);
+
 /**
  * Visual regression for the default theme: en/LTR and fa/RTL, light and dark.
  * Build first: `pnpm site:build`. Update baselines: `pnpm e2e --update-snapshots`.
@@ -12,11 +15,12 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: 'disabled' } },
   // Locally use the installed Google Chrome; CI installs Playwright's Chromium.
-  use: { baseURL: 'http://localhost:4330', channel: process.env.CI ? undefined : 'chrome' },
+  use: { baseURL: `http://localhost:${port}`, channel: process.env.CI ? undefined : 'chrome' },
   webServer: {
-    command: 'node e2e/serve.mjs examples/site/dist 4330',
-    url: 'http://localhost:4330',
-    reuseExistingServer: !process.env.CI,
+    command: `node e2e/serve.mjs examples/site/dist ${port}`,
+    url: `http://localhost:${port}`,
+    // Never reuse: an unrelated server on the port would silently be tested instead.
+    reuseExistingServer: false,
     timeout: 60_000,
   },
   projects: [
