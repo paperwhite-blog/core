@@ -1,0 +1,22 @@
+# Cloudflare Pages builds this repository itself. In the Cloudflare dashboard, connect the repo and set:
+#   Build command:    pnpm build --strict
+#   Output directory: dist
+#   Environment:      NODE_VERSION=22
+# Then create a deploy hook (Settings → Builds → Deploy hooks) and save its URL as the
+# repository secret DEPLOY_HOOK_URL. This workflow calls it once a day so posts dated in the
+# future appear on time.
+name: Scheduled rebuild
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger a new deploy
+        run: curl -fsS -X POST "$DEPLOY_HOOK_URL" > /dev/null
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}

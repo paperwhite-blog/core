@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseWxr, importWxr, htmlToMarkdown, readWxr } from '../src/cli/import/wxr.ts';
-import { scaffold } from '../src/cli/commands/init.ts';
+import { scaffold } from './helpers.ts';
+import { initSite, writeConfig, stripDevFiles, DEV_PATHS } from '../src/cli/commands/init.ts';
 import { noteTemplate } from '../src/cli/commands/new.ts';
 import { rewriteEjected, copyTheme, setConfigTheme } from '../src/cli/commands/theme.ts';
 import { resolveTheme, listThemes } from '../src/theme/resolve.ts';
@@ -63,16 +64,47 @@ describe('wordpress import', () => {
 });
 
 describe('init / new / eject', () => {
-  it('scaffolds a buildable site layout', () => {
+  it('turns a core clone into a blog: config, no dev files, deploy workflow, samples replaced', () => {
     const dir = tmp();
-    const files = scaffold({ dir, theme: 'paper', locales: ['en', 'fa'] });
-    expect(files).toEqual(expect.arrayContaining(['paperwhite.config.yaml', 'content/posts/hello-world.md', 'content/posts/fa/سلام.md', 'themes/README.md']));
-    expect(files).not.toContain('astro.config.ts');
+    scaffold({ dir, theme: 'paper', locales: ['en'] });
+    for (const p of ['dev/e2e', 'pw-core/test', '.github/workflows', '.lighthouseci']) fs.mkdirSync(path.join(dir, p), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'pw-core/package.json'), '{"name":"@paperwhite/core","version":"0.1.0"}');
+    fs.writeFileSync(path.join(dir, 'pw-core/test/x.test.ts'), '');
+    fs.writeFileSync(path.join(dir, '.github/workflows/ci.yml'), 'name: CI');
+    fs.writeFileSync(path.join(dir, 'CONTRIBUTING.md'), '');
+    fs.writeFileSync(path.join(dir, 'paperwhite.slugs.json'), '{}');
+    fs.writeFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'packages:\n  - pw-core\n  - dev/*\n');
+    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'paperwhite', scripts: { dev: 'paperwhite dev', build: 'paperwhite build', test: 'x', e2e: 'y', lhci: 'z' }, dependencies: { astro: '1' }, devDependencies: { vitest: '1' } }));
+    const r = initSite(dir, { title: 'Ink & Paper', description: 'Notes.', url: 'https://ink.example/', author: 'Ada', locales: ['en', 'fa'], deploy: 'github-pages', removeSamples: true, freshHistory: true }, { git: false, install: false });
     const user = readUserConfig(dir);
+    expect(user.site).toMatchObject({ title: 'Ink & Paper', url: 'https://ink.example', description: 'Notes.', author: 'Ada' });
     expect(user.locales).toEqual({ default: 'en', supported: { en: {}, fa: {} } });
     expect(user.theme).toBe('paper');
-    expect(user.plugins).toEqual([]);
-    expect(resolveTheme('paper', dir).source).toBe('core');
+    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.yaml'), 'utf8')).toContain('# A folder under themes/'); // comments kept
+    for (const p of DEV_PATHS) expect(fs.existsSync(path.join(dir, p))).toBe(false);
+    expect(fs.existsSync(path.join(dir, 'pw-core/package.json'))).toBe(true);
+    const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+    expect(Object.keys(pkg.scripts)).toEqual(['dev', 'build']);
+    expect(pkg.devDependencies).toBeUndefined();
+    expect(pkg.dependencies).toEqual({ astro: '1' });
+    expect(fs.readFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'utf8')).not.toContain('dev/*');
+    expect(r.samples).toEqual(['content/posts/hello-world.md', 'content/pages/about.md', 'content/posts/fa/سلام.md']);
+    expect(fs.existsSync(path.join(dir, 'paperwhite.slugs.json'))).toBe(false);
+    expect(fs.readFileSync(path.join(dir, '.github/workflows/deploy.yml'), 'utf8')).toContain('actions/deploy-pages');
+    expect(fs.readFileSync(path.join(dir, 'README.md'), 'utf8')).toContain('# Ink & Paper');
+  });
+  it('keeps samples and writes a rebuild-hook workflow for hosts that build themselves', () => {
+    const dir = tmp();
+    scaffold({ dir });
+    fs.mkdirSync(path.join(dir, 'pw-core'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'pw-core/package.json'), '{"name":"@paperwhite/core","version":"0.1.0"}');
+    const r = initSite(dir, { title: 'T', description: 'D', url: 'https://t.example', locales: ['en'], deploy: 'netlify', removeSamples: false, freshHistory: false }, { git: false, install: false });
+    expect(r.samples).toEqual([]);
+    expect(fs.existsSync(path.join(dir, 'content/posts/hello-world.md'))).toBe(true);
+    expect(fs.readFileSync(path.join(dir, '.github/workflows/deploy.yml'), 'utf8')).toContain('DEPLOY_HOOK_URL');
+    expect(stripDevFiles(dir)).toEqual([]);
+    expect(writeConfig(dir, { title: 'T2', description: 'D', url: 'https://t.example', locales: ['fa'], deploy: 'none', removeSamples: false, freshHistory: false })).toMatch(/paperwhite\.config\.yaml$/);
+    expect(readUserConfig(dir).locales!.default).toBe('fa');
   });
   it('writes note frontmatter', () => {
     const t = noteTemplate({ title: 'سلام', lang: 'fa', date: new Date('2024-01-02'), defaultLang: 'en' });

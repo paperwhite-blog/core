@@ -1,0 +1,23 @@
+# Vercel builds this repository itself. In the Vercel dashboard, import the repo and set:
+#   Framework preset: Other
+#   Build command:    pnpm build --strict
+#   Output directory: dist
+#   Node.js version:  22
+# Then create a deploy hook (Settings → Git → Deploy Hooks) and save its URL as the repository
+# secret DEPLOY_HOOK_URL. This workflow calls it once a day so posts dated in the future appear
+# on time. dist/vercel.json carries the redirects.
+name: Scheduled rebuild
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger a new deploy
+        run: curl -fsS -X POST "$DEPLOY_HOOK_URL" > /dev/null
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}

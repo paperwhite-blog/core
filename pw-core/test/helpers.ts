@@ -46,3 +46,26 @@ export async function tempVault(files: Record<string, string>, extra: Partial<Pa
   const config = resolveConfig({ site: { url: 'https://x.test', title: 'T' }, contentDir: dir, locales: { supported: { en: {}, fa: {} } }, ...extra }, dir);
   return { dir, config, result: await buildVault(config, { cacheDir: path.join(dir, '.cache') }) };
 }
+
+/** A minimal site folder for CLI tests: YAML config, sample notes, themes/ README. */
+export function scaffold(opts: { dir: string; theme?: string; locales?: string[] }): string[] {
+  const { dir, theme = 'paper', locales = ['en'] } = opts;
+  const written: string[] = [];
+  const write = (rel: string, content: string) => {
+    const file = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, content);
+    written.push(rel);
+  };
+  const supported = locales.map((l) => `    ${l}: {}`).join('\n');
+  write('package.json', '{"name":"site","private":true,"type":"module"}\n');
+  write(
+    'paperwhite.config.yaml',
+    `# A folder under themes/ (yours) or a built-in theme.\nsite:\n  url: https://example.com\n  title: My Blog\ncontentDir: ./content\nlocales:\n  default: ${locales[0]}\n  supported:\n${supported}\ntheme: ${theme}\nplugins: []\n`,
+  );
+  write('content/posts/hello-world.md', '---\ntitle: Hello\ndate: 2024-01-01\n---\nHi [[About]].\n');
+  write('content/pages/about.md', '---\ntitle: About\n---\nAbout.\n');
+  if (locales.includes('fa')) write('content/posts/fa/سلام.md', '---\ntitle: سلام\ndate: 2024-01-01\nlang: fa\n---\nسلام.\n');
+  write('themes/README.md', '# themes\n');
+  return written;
+}
