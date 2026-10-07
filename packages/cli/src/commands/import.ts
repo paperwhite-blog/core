@@ -2,7 +2,7 @@ import path from 'node:path';
 import { defineCommand } from 'citty';
 import pc from 'picocolors';
 import { readWxr, parseWxr, importWxr } from '../import/wxr.ts';
-import { loadSiteConfig, findConfigFile } from '../site.ts';
+import { loadSiteConfig, resolveSite } from '../site.ts';
 
 export const importCmd = defineCommand({
   meta: { name: 'import', description: 'Import a WordPress export (WXR .xml or .zip) into the vault' },
@@ -12,10 +12,15 @@ export const importCmd = defineCommand({
     download: { type: 'boolean', description: 'Download attachments into attachments/' },
     drafts: { type: 'boolean', description: 'Import drafts as draft: true' },
     lang: { type: 'string', description: 'Set lang on imported notes' },
+    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.ts)' },
   },
   async run({ args }) {
     const root = process.cwd();
-    const outDir = args.out ? path.resolve(args.out) : findConfigFile(root) ? (await loadSiteConfig(root)).contentDir : path.join(root, 'content');
+    let siteRoot: string | undefined;
+    try {
+      siteRoot = resolveSite(args.site);
+    } catch {}
+    const outDir = args.out ? path.resolve(args.out) : siteRoot ? (await loadSiteConfig(siteRoot)).contentDir : path.join(root, 'content');
     const site = parseWxr(await readWxr(path.resolve(args.file)));
     const r = await importWxr(site, { outDir, download: args.download, drafts: args.drafts, lang: args.lang });
     console.log(

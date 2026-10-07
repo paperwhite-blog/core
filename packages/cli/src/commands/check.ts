@@ -3,7 +3,7 @@ import { defineCommand } from 'citty';
 import pc from 'picocolors';
 import { buildVault } from '@paperwhite/core/vault';
 import { auditVault } from '@paperwhite/core/audit';
-import { loadSiteConfig } from '../site.ts';
+import { loadSiteConfig, resolveSite } from '../site.ts';
 import { checkExternalLinks, extractExternalLinks } from '../external.ts';
 
 export const check = defineCommand({
@@ -13,9 +13,10 @@ export const check = defineCommand({
     force: { type: 'boolean', description: 'Ignore the external link cache' },
     strict: { type: 'boolean', description: 'Exit non-zero on warnings too' },
     json: { type: 'boolean', description: 'Print the report as JSON' },
+    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.ts)' },
   },
   async run({ args }) {
-    const root = process.cwd();
+    const root = resolveSite(args.site);
     const config = await loadSiteConfig(root);
     const cacheDir = path.join(root, '.paperwhite');
     const t0 = Date.now();

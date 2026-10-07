@@ -10,6 +10,59 @@ export function findConfigFile(root: string): string | undefined {
   return undefined;
 }
 
+const SKIP = new Set(['node_modules', 'dist', '.git', '.astro', '.paperwhite']);
+
+function findSitesBelow(dir: string, depth = 3): string[] {
+  const out: string[] = [];
+  const walk = (d: string, level: number) => {
+    if (findConfigFile(d)) out.push(d);
+    if (level >= depth) return;
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) if (e.isDirectory() && !SKIP.has(e.name) && !e.name.startsWith('.')) walk(path.join(d, e.name), level + 1);
+  };
+  walk(dir, 0);
+  return out;
+}
+
+/**
+ * Find the site to operate on, so commands work from anywhere inside a project:
+ * 1. an explicit `--site <dir>` (or PAPERWHITE_SITE)
+ * 2. the nearest folder (cwd or a parent) containing paperwhite.config.ts
+ * 3. a `"paperwhite": { "site": "<dir>" }` default in a parent package.json (monorepos)
+ */
+export function resolveSite(explicit?: string, start = process.cwd()): string {
+  const chosen = explicit ?? process.env.PAPERWHITE_SITE;
+  if (chosen) {
+    const dir = path.resolve(start, chosen);
+    if (!findConfigFile(dir)) throw new Error(`No paperwhite.config.ts in ${dir}`);
+    return dir;
+  }
+  let dir = path.resolve(start);
+  for (;;) {
+    if (findConfigFile(dir)) return dir;
+    const pkg = path.join(dir, 'package.json');
+    if (fs.existsSync(pkg)) {
+      try {
+        const site = (JSON.parse(fs.readFileSync(pkg, 'utf8')) as { paperwhite?: { site?: string } }).paperwhite?.site;
+        if (site && findConfigFile(path.resolve(dir, site))) return path.resolve(dir, site);
+      } catch {}
+    }
+    const up = path.dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  const below = findSitesBelow(start);
+  const hint = below.length
+    ? `Sites found below this folder:\n${below.map((d) => `  ${path.relative(start, d)}`).join('\n')}\nRun the command inside one of them, or pass --site <dir>.`
+    : 'Create one with `paperwhite init my-blog`.';
+  throw new Error(`No PaperWhite site here (no paperwhite.config.ts in this folder or its parents).\n${hint}`);
+}
+
 /** Load and resolve `paperwhite.config.ts` (TypeScript supported via jiti). */
 export async function loadSiteConfig(root: string): Promise<ResolvedConfig> {
   const file = findConfigFile(root);

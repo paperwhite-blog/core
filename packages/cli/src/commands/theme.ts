@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { defineCommand } from 'citty';
 import pc from 'picocolors';
-import { loadSiteConfig, findConfigFile } from '../site.ts';
+import { loadSiteConfig, findConfigFile, resolveSite } from '../site.ts';
 
 function coreDir(root: string): string {
   const req = createRequire(path.join(root, 'package.json'));
@@ -40,9 +40,9 @@ export function rewriteEjected(source: string, from: 'core' | 'theme'): string {
 
 const add = defineCommand({
   meta: { name: 'add', description: 'Install a theme package and select it' },
-  args: { pkg: { type: 'positional', required: true, description: 'Theme package, e.g. paperwhite-theme-paper' } },
+  args: { pkg: { type: 'positional', required: true, description: 'Theme package, e.g. paperwhite-theme-paper' }, site: { type: 'string', description: 'Site folder' } },
   run({ args }) {
-    const root = process.cwd();
+    const root = resolveSite(args.site);
     const pm = packageManager(root);
     const r = spawnSync(pm, [pm === 'npm' ? 'install' : 'add', args.pkg], { stdio: 'inherit', cwd: root });
     if (r.status !== 0) {
@@ -64,8 +64,9 @@ const add = defineCommand({
 
 const list = defineCommand({
   meta: { name: 'list', description: 'Show the active theme, its slots and your overrides' },
-  async run() {
-    const root = process.cwd();
+  args: { site: { type: 'string', description: 'Site folder' } },
+  async run({ args }) {
+    const root = resolveSite(args.site);
     const config = await loadSiteConfig(root);
     const tdir = themeDir(root, config.theme);
     const manifest = JSON.parse(fs.readFileSync(path.join(tdir, 'theme.json'), 'utf8')) as { name: string; version?: string; rtl: string; themeApi: number };
@@ -88,9 +89,10 @@ const eject = defineCommand({
   args: {
     name: { type: 'positional', required: true, description: 'Component name, e.g. Header or layouts/Post' },
     force: { type: 'boolean', description: 'Overwrite an existing override' },
+    site: { type: 'string', description: 'Site folder' },
   },
   async run({ args }) {
-    const root = process.cwd();
+    const root = resolveSite(args.site);
     const config = await loadSiteConfig(root);
     const [kind, name] = args.name.includes('/') ? (args.name.split('/') as ['components' | 'layouts', string]) : (['components', args.name] as const);
     const tdir = themeDir(root, config.theme);

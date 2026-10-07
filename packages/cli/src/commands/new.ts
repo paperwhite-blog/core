@@ -3,7 +3,7 @@ import path from 'node:path';
 import { defineCommand } from 'citty';
 import pc from 'picocolors';
 import { slugify } from '@paperwhite/core/i18n';
-import { loadSiteConfig } from '../site.ts';
+import { loadSiteConfig, resolveSite } from '../site.ts';
 
 export function noteTemplate(opts: { title: string; lang?: string; date: Date; page?: boolean; defaultLang: string }): string {
   const lines = ['---', `title: ${JSON.stringify(opts.title)}`];
@@ -22,9 +22,10 @@ export const newNote = defineCommand({
     lang: { type: 'string', description: 'Locale (e.g. fa)' },
     page: { type: 'boolean', description: 'Create a page instead of a post' },
     dir: { type: 'string', description: 'Sub-folder inside posts/' },
+    site: { type: 'string', description: 'Site folder (default: nearest paperwhite.config.ts)' },
   },
   async run({ args }) {
-    const config = await loadSiteConfig(process.cwd());
+    const config = await loadSiteConfig(resolveSite(args.site));
     const base = path.join(config.contentDir, args.page ? config.dirs.pages : config.dirs.posts, args.dir ?? '', args.lang && args.lang !== config.locales.default ? args.lang : '');
     fs.mkdirSync(base, { recursive: true });
     const file = path.join(base, `${slugify(args.title) || 'untitled'}.md`);
