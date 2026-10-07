@@ -1,0 +1,37 @@
+# PaperWhite site configuration — the one file to edit. Reference: pw-docs/configuration.md
+site:
+  url: https://example.com            # production URL, no trailing slash
+  title: My PaperWhite Blog
+  description: Notes from an Obsidian vault, published as a fast static site.
+  # author: me                        # key from `authors` below, or a plain name
+  # footer: "© 2026 Me"               # replaces "Built with PaperWhite"
+  # social:
+  #   github: https://github.com/me
+  #   twitter: https://x.com/me
+
+# authors:
+#   me:
+#     name: My Name
+#     url: https://example.com/about/
+
+# Where your notes live: this folder, or an Obsidian vault anywhere on disk (../MyVault/Blog).
+contentDir: ./content
+
+locales:
+  default: en
+  supported:
+    en: {}
+    # fa: {}                          # add a locale: posts with `lang: fa` get /fa/ URLs, RTL, Jalali dates
+
+# A folder under themes/ (yours) or a built-in theme. `paperwhite theme list` shows both.
+theme: paper
+
+# Folders under plugins/, added with `paperwhite add owner/repo`.
+plugins: []
+
+# seo:
+#   twitterHandle: "@me"
+# comments:
+#   provider: giscus
+#   giscus: { repo: me/blog, repoId: "...", category: Comments, categoryId: "..." }
+# editUrl: https://github.com/me/blog/edit/main/content/

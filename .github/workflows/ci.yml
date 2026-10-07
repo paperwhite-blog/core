@@ -34,8 +34,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Build the sample site (root)
+        run: pnpm build --strict
       - name: Build fixture site
-        run: pnpm build
+        run: pnpm fixture:build
       - name: Audit finds exactly the deliberate fixture errors
         run: node dev/assert-audit.mjs
       - name: Strict mode fails on those errors

@@ -1,5 +1,6 @@
 {
-  "name": "paperwhite-monorepo",
+  "name": "paperwhite",
+  "description": "Obsidian in, Lighthouse 100 out. Clone, write Markdown, publish.",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.34.6",
@@ -12,11 +13,13 @@
     "preview": "paperwhite preview",
     "check": "paperwhite check",
     "new": "paperwhite new",
-    "docs:dev": "paperwhite dev --site docs",
-    "docs:build": "paperwhite build --site docs",
+    "add": "paperwhite add",
+    "update": "paperwhite update",
     "test": "pnpm --filter @paperwhite/core test",
     "test:watch": "pnpm --filter @paperwhite/core test:watch",
     "typecheck": "pnpm --filter @paperwhite/core typecheck",
+    "fixture:build": "paperwhite build --site dev/fixture-site",
+    "fixture:dev": "paperwhite dev --site dev/fixture-site",
     "e2e": "playwright test -c dev/e2e/playwright.config.ts",
     "lhci": "lhci autorun --config=dev/lighthouserc.cjs",
     "bench": "pnpm --filter paperwhite-bench run bench",
@@ -24,15 +27,15 @@
     "link-cli": "node dev/link-cli.mjs",
     "unlink-cli": "node dev/link-cli.mjs --unlink"
   },
+  "dependencies": {
+    "@paperwhite/core": "workspace:*",
+    "astro": "^7.3.5"
+  },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@lhci/cli": "^0.15.1",
-    "@paperwhite/core": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.0",
     "typescript": "~5.9.3"
-  },
-  "paperwhite": {
-    "site": "dev/fixture-site"
   }
 }

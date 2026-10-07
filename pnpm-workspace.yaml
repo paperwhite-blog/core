@@ -1,7 +1,6 @@
 packages:
   - pw-core
   - dev/*
-  - docs
 onlyBuiltDependencies:
   - sharp
   - esbuild
