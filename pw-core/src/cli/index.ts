@@ -5,10 +5,11 @@ import { check } from './commands/check.ts';
 import { newNote } from './commands/new.ts';
 import { theme } from './commands/theme.ts';
 import { importCmd } from './commands/import.ts';
+import { add } from './commands/add.ts';
 
 export const cli = defineCommand({
   meta: { name: 'paperwhite', version: '0.1.0', description: 'Obsidian in, Lighthouse 100 out.' },
-  subCommands: { init, dev, build, preview, check, new: newNote, theme, import: importCmd },
+  subCommands: { init, dev, build, preview, check, new: newNote, theme, add, import: importCmd },
 });
 
 export async function main() {

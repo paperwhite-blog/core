@@ -9,6 +9,10 @@ import { noteTemplate } from '../src/cli/commands/new.ts';
 import { rewriteEjected, copyTheme, setConfigTheme } from '../src/cli/commands/theme.ts';
 import { resolveTheme, listThemes } from '../src/theme/resolve.ts';
 import { readUserConfig } from '../src/config/load.ts';
+import { installFromDir, addPluginToConfig, detectKind } from '../src/cli/commands/add.ts';
+import { parseGitHubSource, compareSemver, extractTarGz } from '../src/cli/github.ts';
+import { gzipSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { extractExternalLinks, checkExternalLinks } from '../src/cli/external.ts';
 import { resolveConfig } from '../src/config.ts';
 import { buildVault } from '../src/content/vault.ts';
@@ -122,6 +126,71 @@ describe('themes', () => {
     copyTheme(dir, 'paper', 'paper');
     expect(JSON.parse(fs.readFileSync(path.join(dir, 'themes/paper/theme.json'), 'utf8')).name).toBe('paper');
     expect(resolveTheme('paper', dir).source).toBe('site');
+  });
+});
+
+describe('add', () => {
+  const sitedir = () => {
+    const dir = tmp();
+    scaffold({ dir, theme: 'paper', locales: ['en'] });
+    return dir;
+  };
+  it('parses GitHub sources', () => {
+    expect(parseGitHubSource('acme/theme-ink')).toEqual({ owner: 'acme', repo: 'theme-ink', ref: undefined });
+    expect(parseGitHubSource('acme/theme-ink#v1.2.0')).toEqual({ owner: 'acme', repo: 'theme-ink', ref: 'v1.2.0' });
+    expect(parseGitHubSource('https://github.com/acme/theme-ink')).toEqual({ owner: 'acme', repo: 'theme-ink', ref: undefined });
+    expect(parseGitHubSource('https://github.com/acme/theme-ink/tree/main')).toEqual({ owner: 'acme', repo: 'theme-ink', ref: 'main' });
+    expect(parseGitHubSource('./themes/x')).toBeUndefined();
+    expect(parseGitHubSource('/abs/path')).toBeUndefined();
+  });
+  it('orders versions', () => {
+    expect(['v0.2.0', 'v0.10.0', 'v0.2.1', 'v1.0.0-beta.1', 'v1.0.0'].sort(compareSemver)).toEqual(['v0.2.0', 'v0.2.1', 'v0.10.0', 'v1.0.0-beta.1', 'v1.0.0']);
+  });
+  it('installs a theme folder and selects it', () => {
+    const dir = sitedir();
+    const src = path.join(tmp(), 'theme-ink');
+    fs.mkdirSync(path.join(src, 'styles'), { recursive: true });
+    fs.writeFileSync(path.join(src, 'theme.json'), JSON.stringify({ name: 'ink', themeApi: 1, rtl: 'tokens-only' }));
+    fs.writeFileSync(path.join(src, 'styles/theme.css'), ':root{--pw-accent:#000}');
+    fs.mkdirSync(path.join(src, '.git')); // must not be copied
+    const r = installFromDir(dir, src);
+    expect(r.manifest).toMatchObject({ name: 'ink', kind: 'theme' });
+    expect(fs.existsSync(path.join(dir, 'themes/ink/styles/theme.css'))).toBe(true);
+    expect(fs.existsSync(path.join(dir, 'themes/ink/.git'))).toBe(false);
+    expect(readUserConfig(dir).theme).toBe('ink');
+    expect(resolveTheme('ink', dir).source).toBe('site');
+    expect(() => installFromDir(dir, src)).toThrow(/already exists/);
+    const renamed = installFromDir(dir, src, { name: 'ink2' });
+    expect(JSON.parse(fs.readFileSync(path.join(renamed.dest, 'theme.json'), 'utf8')).name).toBe('ink2');
+  });
+  it('installs a plugin folder, enables it, and the config loads it', () => {
+    const dir = sitedir();
+    const src = path.join(tmp(), 'plugin-shout');
+    fs.mkdirSync(src, { recursive: true });
+    fs.writeFileSync(path.join(src, 'plugin.json'), JSON.stringify({ name: 'shout', pluginApi: 1 }));
+    fs.writeFileSync(path.join(src, 'index.ts'), "export default () => ({ name: 'shout' });");
+    const r = installFromDir(dir, src);
+    expect(r.manifest.kind).toBe('plugin');
+    const yaml = fs.readFileSync(path.join(dir, 'paperwhite.config.yaml'), 'utf8');
+    expect(yaml).toMatch(/plugins:\n\s+- shout/);
+    expect(readUserConfig(dir).plugins!.map((p) => p.name)).toEqual(['shout']);
+    addPluginToConfig(dir, 'shout'); // idempotent
+    expect((fs.readFileSync(path.join(dir, 'paperwhite.config.yaml'), 'utf8').match(/- shout/g) ?? []).length).toBe(1);
+    fs.writeFileSync(path.join(src, 'plugin.json'), JSON.stringify({ name: 'shout', pluginApi: 7 }));
+    expect(() => detectKind(src)).toThrow(/pluginApi must be 1/);
+    expect(() => detectKind(tmp())).toThrow(/not a PaperWhite theme or plugin/);
+  });
+  it('extracts a GitHub-style tarball (top-level folder stripped)', () => {
+    if (spawnSync('tar', ['--version']).status !== 0) return;
+    const work = tmp();
+    fs.mkdirSync(path.join(work, 'repo-abc123/styles'), { recursive: true });
+    fs.writeFileSync(path.join(work, 'repo-abc123/theme.json'), '{"name":"x","themeApi":1,"rtl":"full"}');
+    fs.writeFileSync(path.join(work, 'repo-abc123/styles/theme.css'), '');
+    const tar = spawnSync('tar', ['-cf', '-', '-C', work, 'repo-abc123']).stdout;
+    const dest = tmp();
+    extractTarGz(gzipSync(tar), dest);
+    expect(fs.existsSync(path.join(dest, 'theme.json'))).toBe(true);
+    expect(detectKind(dest).kind).toBe('theme');
   });
 });
 
