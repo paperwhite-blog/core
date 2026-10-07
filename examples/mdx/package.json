@@ -2,11 +2,18 @@
   "name": "example-mdx",
   "private": true,
   "type": "module",
-  "scripts": { "build": "astro build", "dev": "astro dev" },
+  "scripts": {
+    "dev": "paperwhite dev",
+    "build": "paperwhite build",
+    "preview": "paperwhite preview",
+    "check": "paperwhite check",
+    "new": "paperwhite new"
+  },
   "dependencies": {
     "@astrojs/mdx": "^8.0.2",
     "@paperwhite/core": "workspace:*",
     "astro": "^7.3.5",
-    "paperwhite-theme-paper": "workspace:*"
+    "paperwhite-theme-paper": "workspace:*",
+    "paperwhite": "workspace:*"
   }
 }

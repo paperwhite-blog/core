@@ -2,10 +2,17 @@
   "name": "paperwhite-docs",
   "private": true,
   "type": "module",
-  "scripts": { "dev": "astro dev", "build": "astro build", "preview": "astro preview" },
+  "scripts": {
+    "dev": "paperwhite dev",
+    "build": "paperwhite build",
+    "preview": "paperwhite preview",
+    "check": "paperwhite check",
+    "new": "paperwhite new"
+  },
   "dependencies": {
     "@paperwhite/core": "workspace:*",
     "astro": "^7.3.5",
-    "paperwhite-theme-paper": "workspace:*"
+    "paperwhite-theme-paper": "workspace:*",
+    "paperwhite": "workspace:*"
   }
 }

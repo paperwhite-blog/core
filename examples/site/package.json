@@ -3,15 +3,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "build:strict": "PAPERWHITE_STRICT=1 astro build",
-    "preview": "astro preview"
+    "dev": "paperwhite dev",
+    "build": "paperwhite build",
+    "build:strict": "paperwhite build --strict",
+    "preview": "paperwhite preview",
+    "check": "paperwhite check",
+    "new": "paperwhite new"
   },
   "dependencies": {
     "@paperwhite/core": "workspace:*",
     "astro": "^7.3.5",
-    "paperwhite-theme-paper": "workspace:*"
+    "paperwhite-theme-paper": "workspace:*",
+    "paperwhite": "workspace:*"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",

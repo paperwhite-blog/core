@@ -7,13 +7,21 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "pnpm -r --filter ./packages/** --filter ./themes/** --filter ./plugins/** run build",
+    "dev": "paperwhite dev",
+    "build": "paperwhite build",
+    "preview": "paperwhite preview",
+    "check": "paperwhite check",
+    "new": "paperwhite new",
+    "docs:dev": "paperwhite dev --site docs",
+    "docs:build": "paperwhite build --site docs",
+    "site:dev": "paperwhite dev",
+    "site:build": "paperwhite build",
+    "link-cli": "node scripts/link-cli.mjs",
+    "unlink-cli": "node scripts/link-cli.mjs --unlink",
+    "build:packages": "pnpm --filter paperwhite run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm --filter @paperwhite/core exec tsc -p tsconfig.json && pnpm --filter paperwhite exec tsc -p tsconfig.json",
-    "site:build": "pnpm --filter example-site run build",
-    "site:dev": "pnpm --filter example-site run dev",
-    "docs:build": "pnpm --filter paperwhite-docs run build",
     "e2e": "playwright test",
     "lhci": "lhci autorun --config=lighthouserc.cjs",
     "bench": "pnpm --filter paperwhite-bench run bench",
@@ -24,6 +32,10 @@
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.10.0",
     "typescript": "~5.9.3",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "paperwhite": "workspace:*"
+  },
+  "paperwhite": {
+    "site": "examples/site"
   }
 }
