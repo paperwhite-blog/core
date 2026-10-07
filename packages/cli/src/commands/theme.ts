@@ -1,32 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { createRequire } from 'node:module';
 import { defineCommand } from 'citty';
 import pc from 'picocolors';
+import { resolveTheme, listThemes, coreDir, siteThemesDir } from '@paperwhite/core/theme';
 import { loadSiteConfig, findConfigFile, resolveSite } from '../site.ts';
-
-function coreDir(root: string): string {
-  const req = createRequire(path.join(root, 'package.json'));
-  return path.dirname(req.resolve('@paperwhite/core/package.json'));
-}
-
-function themeDir(root: string, theme: string): string {
-  if (theme.startsWith('.') || path.isAbsolute(theme)) return path.resolve(root, theme);
-  const req = createRequire(path.join(root, 'package.json'));
-  return path.dirname(req.resolve(`${theme}/theme.json`));
-}
 
 function slots(dir: string, kind: 'components' | 'layouts'): string[] {
   const d = path.join(dir, kind);
   return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.astro')).map((f) => f.replace(/\.astro$/, '')) : [];
-}
-
-function packageManager(root: string): string {
-  if (fs.existsSync(path.join(root, 'pnpm-lock.yaml'))) return 'pnpm';
-  if (fs.existsSync(path.join(root, 'yarn.lock'))) return 'yarn';
-  if (fs.existsSync(path.join(root, 'bun.lockb')) || fs.existsSync(path.join(root, 'bun.lock'))) return 'bun';
-  return 'npm';
 }
 
 /** Rewrite core-relative imports so an ejected file works from `src/overrides/`. */
@@ -38,54 +19,88 @@ export function rewriteEjected(source: string, from: 'core' | 'theme'): string {
     .replace(/(['"])\.\.\/components\/([\w-]+\.astro)\1/g, `'@paperwhite/core/components/$2'`);
 }
 
-const add = defineCommand({
-  meta: { name: 'add', description: 'Install a theme package and select it' },
-  args: { pkg: { type: 'positional', required: true, description: 'Theme package, e.g. paperwhite-theme-paper' }, site: { type: 'string', description: 'Site folder' } },
-  run({ args }) {
-    const root = resolveSite(args.site);
-    const pm = packageManager(root);
-    const r = spawnSync(pm, [pm === 'npm' ? 'install' : 'add', args.pkg], { stdio: 'inherit', cwd: root });
-    if (r.status !== 0) {
-      process.exitCode = r.status ?? 1;
-      return;
-    }
-    const file = findConfigFile(root);
-    if (file) {
-      const src = fs.readFileSync(file, 'utf8');
-      const name = args.pkg.replace(/@[^/@]+$/, '');
-      const next = /theme:\s*['"][^'"]*['"]/.test(src)
-        ? src.replace(/theme:\s*['"][^'"]*['"]/, `theme: '${name}'`)
-        : src.replace(/defineConfig\(\{/, `defineConfig({\n  theme: '${name}',`);
-      fs.writeFileSync(file, next);
-      console.log(`${pc.green('theme set')} ${name} in ${path.basename(file)}`);
-    }
-  },
-});
+/** Point `theme:` in paperwhite.config.* at `name` (adds the key if missing). Returns the file edited. */
+export function setConfigTheme(root: string, name: string): string | undefined {
+  const file = findConfigFile(root);
+  if (!file) return undefined;
+  const src = fs.readFileSync(file, 'utf8');
+  const next = /theme:\s*['"][^'"]*['"]/.test(src)
+    ? src.replace(/theme:\s*['"][^'"]*['"]/, `theme: '${name}'`)
+    : src.replace(/defineConfig\(\{/, `defineConfig({\n  theme: '${name}',`);
+  if (next !== src) fs.writeFileSync(file, next);
+  return file;
+}
+
+/**
+ * Copy a theme (built-in or site) into `<site>/themes/<name>/` so it can be edited.
+ * The copy is a complete theme folder: theme.json, styles/, components/, layouts/.
+ */
+export function copyTheme(root: string, name: string, from: string, opts: { force?: boolean } = {}): string {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new Error(`Theme names are lowercase letters, digits and dashes: "${name}"`);
+  const src = resolveTheme(from, root);
+  const dest = path.join(siteThemesDir(root), name);
+  if (fs.existsSync(dest) && !opts.force) throw new Error(`${path.relative(root, dest)} exists (use --force to overwrite)`);
+  if (path.resolve(src.dir) === path.resolve(dest)) throw new Error(`themes/${name} is already the active theme folder`);
+  fs.rmSync(dest, { recursive: true, force: true });
+  fs.mkdirSync(dest, { recursive: true });
+  fs.cpSync(src.dir, dest, { recursive: true, filter: (p) => !/\/(node_modules|dist|\.git)(\/|$)/.test(p) });
+  const manifest = { ...src.manifest, name, version: name === from ? src.manifest.version : '0.1.0' };
+  if (name !== from) manifest.description = `${name} — based on ${src.manifest.name}`;
+  fs.writeFileSync(path.join(dest, 'theme.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  return dest;
+}
 
 const list = defineCommand({
-  meta: { name: 'list', description: 'Show the active theme, its slots and your overrides' },
+  meta: { name: 'list', description: 'Show available themes, the active one, and where each slot comes from' },
   args: { site: { type: 'string', description: 'Site folder' } },
   async run({ args }) {
     const root = resolveSite(args.site);
     const config = await loadSiteConfig(root);
-    const tdir = themeDir(root, config.theme);
-    const manifest = JSON.parse(fs.readFileSync(path.join(tdir, 'theme.json'), 'utf8')) as { name: string; version?: string; rtl: string; themeApi: number };
-    const cdir = coreDir(root);
+    const active = resolveTheme(config.theme, root);
+    console.log(pc.bold('themes'));
+    for (const t of listThemes(root)) {
+      const mark = t.dir === active.dir ? pc.green('●') : pc.dim('○');
+      console.log(`  ${mark} ${t.name.padEnd(18)} ${t.source === 'site' ? pc.cyan(`themes/${t.name}/`) : pc.dim('built-in')}`);
+    }
+    if (active.source === 'path') console.log(`  ${pc.green('●')} ${active.manifest.name.padEnd(18)} ${pc.cyan(path.relative(root, active.dir))}`);
+    console.log(`\n${pc.bold(active.manifest.name)} ${pc.dim(active.manifest.version ?? '')} · themeApi ${active.manifest.themeApi} · RTL ${active.manifest.rtl}\n`);
     const odir = path.join(root, 'src/overrides');
-    console.log(`${pc.bold(manifest.name)} ${pc.dim(manifest.version ?? '')} · themeApi ${manifest.themeApi} · RTL ${manifest.rtl}\n`);
     for (const kind of ['components', 'layouts'] as const) {
       console.log(pc.bold(kind));
-      const all = [...new Set([...slots(cdir, kind), ...slots(tdir, kind)])].sort();
+      const all = [...new Set([...slots(coreDir, kind), ...slots(active.dir, kind)])].sort();
       for (const s of all) {
-        const from = fs.existsSync(path.join(odir, kind, `${s}.astro`)) ? pc.green('site') : slots(tdir, kind).includes(s) ? pc.cyan('theme') : pc.dim('core');
+        const from = fs.existsSync(path.join(odir, kind, `${s}.astro`)) ? pc.green('site') : slots(active.dir, kind).includes(s) ? pc.cyan('theme') : pc.dim('core');
         console.log(`  ${s.padEnd(18)} ${from}`);
       }
     }
   },
 });
 
+const create = defineCommand({
+  meta: { name: 'new', description: 'Copy a theme into themes/<name>/ and make it the active theme' },
+  args: {
+    name: { type: 'positional', required: true, description: 'Folder name under themes/, e.g. ink' },
+    from: { type: 'string', description: 'Theme to start from', default: 'paper' },
+    force: { type: 'boolean', description: 'Overwrite an existing folder' },
+    site: { type: 'string', description: 'Site folder' },
+  },
+  run({ args }) {
+    const root = resolveSite(args.site);
+    try {
+      const dest = copyTheme(root, args.name, args.from, { force: args.force });
+      console.log(`${pc.green('created')} ${path.relative(root, dest)}/ ${pc.dim(`(from ${args.from})`)}`);
+      const file = setConfigTheme(root, args.name);
+      if (file) console.log(`${pc.green('theme set')} ${args.name} in ${path.basename(file)}`);
+      console.log(`\nEdit ${path.relative(root, dest)}/styles/theme.css to change tokens, or drop components into ${path.relative(root, dest)}/components/.`);
+    } catch (e) {
+      console.error(pc.red((e as Error).message));
+      process.exitCode = 1;
+    }
+  },
+});
+
 const eject = defineCommand({
-  meta: { name: 'eject', description: 'Copy a component or layout into src/overrides/ to customize it' },
+  meta: { name: 'eject', description: 'Copy one component or layout into src/overrides/ to customize it' },
   args: {
     name: { type: 'positional', required: true, description: 'Component name, e.g. Header or layouts/Post' },
     force: { type: 'boolean', description: 'Overwrite an existing override' },
@@ -95,10 +110,9 @@ const eject = defineCommand({
     const root = resolveSite(args.site);
     const config = await loadSiteConfig(root);
     const [kind, name] = args.name.includes('/') ? (args.name.split('/') as ['components' | 'layouts', string]) : (['components', args.name] as const);
-    const tdir = themeDir(root, config.theme);
-    const cdir = coreDir(root);
+    const tdir = resolveTheme(config.theme, root).dir;
     const fromTheme = path.join(tdir, kind, `${name}.astro`);
-    const fromCore = path.join(cdir, kind, `${name}.astro`);
+    const fromCore = path.join(coreDir, kind, `${name}.astro`);
     const src = fs.existsSync(fromTheme) ? fromTheme : fs.existsSync(fromCore) ? fromCore : undefined;
     if (!src) {
       console.error(pc.red(`No ${kind.slice(0, -1)} named "${name}" in the theme or core. Run \`paperwhite theme list\`.`));
@@ -118,6 +132,6 @@ const eject = defineCommand({
 });
 
 export const theme = defineCommand({
-  meta: { name: 'theme', description: 'Manage themes: add | list | eject' },
-  subCommands: { add, list, eject },
+  meta: { name: 'theme', description: 'Manage themes: list | new | eject' },
+  subCommands: { list, new: create, eject },
 });

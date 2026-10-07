@@ -22,7 +22,6 @@ export function scaffold(opts: InitOptions): string[] {
     fs.writeFileSync(file, content);
     written.push(rel);
   };
-  const themePkg = theme.startsWith('paperwhite-theme-') || theme.includes('/') ? theme : `paperwhite-theme-${theme}`;
   const v = opts.coreVersion ?? '^0.1.0';
   const name = path.basename(path.resolve(dir)).toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'my-blog';
   write(
@@ -33,7 +32,7 @@ export function scaffold(opts: InitOptions): string[] {
         private: true,
         type: 'module',
         scripts: { dev: 'paperwhite dev', build: 'paperwhite build', 'build:ci': 'paperwhite build --strict', preview: 'paperwhite preview', check: 'paperwhite check' },
-        dependencies: { '@paperwhite/core': v, astro: '^7.3.5', paperwhite: v, [themePkg]: v },
+        dependencies: { '@paperwhite/core': v, astro: '^7.3.5', paperwhite: v },
       },
       null,
       2,
@@ -53,7 +52,8 @@ export default defineConfig({
   // Point this at your Obsidian vault (or a sub-folder of it).
   contentDir: './content',
   locales: { default: '${locales[0]}', supported: { ${supported} } },
-  theme: '${themePkg}',
+  // A folder name under themes/ (yours) or a built-in theme. \`paperwhite theme list\` shows both.
+  theme: '${theme}',
 });
 `,
   );
@@ -90,6 +90,20 @@ export const collections = paperwhiteCollections(config);
       `---\ntitle: سلام دنیا\ndescription: نخستین نوشته.\ndate: ${today}\nlang: fa\n---\n\nاین نخستین نوشتهٔ فارسی است.\n`,
     );
   }
+  write(
+    'themes/README.md',
+    `# Themes
+
+Each folder here is a theme: \`theme.json\` + \`styles/theme.css\`, plus optional \`components/\` and \`layouts/\`
+that replace PaperWhite's defaults one file at a time.
+
+- Start from the built-in theme: \`paperwhite theme new mytheme\` (copies it here and selects it).
+- Or drop any theme folder in and set \`theme: '<folder-name>'\` in paperwhite.config.ts.
+- Only tweak one piece? \`paperwhite theme eject Header\` copies a single component into src/overrides/.
+
+Restart \`paperwhite dev\` after adding new files to a theme folder.
+`,
+  );
   write('content/attachments/.gitkeep', '');
   write('content/_templates/post.md', `---\ntitle: "{{title}}"\ndate: {{date}}\ntags: []\ndraft: true\n---\n`);
   return written;
@@ -99,7 +113,7 @@ export const init = defineCommand({
   meta: { name: 'init', description: 'Create a new PaperWhite site' },
   args: {
     dir: { type: 'positional', required: false, description: 'Target directory', default: '.' },
-    theme: { type: 'string', description: 'Theme name', default: 'paper' },
+    theme: { type: 'string', description: 'Built-in theme to start with', default: 'paper' },
     locale: { type: 'string', description: 'Comma-separated locales, first is default', default: 'en' },
     title: { type: 'string', description: 'Site title' },
     url: { type: 'string', description: 'Production URL' },

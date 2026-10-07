@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { parseWxr, importWxr, htmlToMarkdown, readWxr } from '../src/import/wxr.ts';
 import { scaffold } from '../src/commands/init.ts';
 import { noteTemplate } from '../src/commands/new.ts';
-import { rewriteEjected } from '../src/commands/theme.ts';
+import { rewriteEjected, copyTheme, setConfigTheme } from '../src/commands/theme.ts';
+import { resolveTheme, listThemes } from '@paperwhite/core/theme';
 import { extractExternalLinks, checkExternalLinks } from '../src/external.ts';
 import { resolveConfig } from '@paperwhite/core/config';
 import { buildVault } from '@paperwhite/core/vault';
@@ -61,7 +62,10 @@ describe('init / new / eject', () => {
     const files = scaffold({ dir, theme: 'paper', locales: ['en', 'fa'] });
     expect(files).toEqual(expect.arrayContaining(['package.json', 'paperwhite.config.ts', 'astro.config.ts', 'src/content.config.ts', 'content/posts/hello-world.md', 'content/posts/fa/سلام.md']));
     expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).toContain("supported: { en: {}, fa: {} }");
-    expect(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).dependencies['paperwhite-theme-paper']).toBeTruthy();
+    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).toContain("theme: 'paper'");
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).dependencies).not.toHaveProperty('paperwhite-theme-paper');
+    expect(files).toContain('themes/README.md');
+    expect(resolveTheme('paper', dir).source).toBe('core');
   });
   it('writes note frontmatter', () => {
     const t = noteTemplate({ title: 'سلام', lang: 'fa', date: new Date('2024-01-02'), defaultLang: 'en' });
@@ -70,6 +74,50 @@ describe('init / new / eject', () => {
   it('rewrites core-relative imports when ejecting', () => {
     const src = `import { useLocale } from '../src/runtime/index.ts';\nimport '../islands/toc.ts';\nimport Seo from '../components/Seo.astro';`;
     expect(rewriteEjected(src, 'core')).toBe(`import { useLocale } from '@paperwhite/core/runtime';\nimport '@paperwhite/core/islands/toc.ts';\nimport Seo from '@paperwhite/core/components/Seo.astro';`);
+  });
+});
+
+describe('themes', () => {
+  it('resolves site folders before built-ins and lists both', () => {
+    const dir = tmp();
+    expect(resolveTheme('paper', dir).source).toBe('core');
+    fs.mkdirSync(path.join(dir, 'themes/paper/styles'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'themes/paper/theme.json'), JSON.stringify({ name: 'paper', themeApi: 1, rtl: 'full' }));
+    const r = resolveTheme('paper', dir);
+    expect(r.source).toBe('site');
+    expect(r.dir).toBe(path.join(dir, 'themes/paper'));
+    expect(listThemes(dir)).toEqual([{ name: 'paper', dir: path.join(dir, 'themes/paper'), source: 'site' }]);
+    expect(resolveTheme('./themes/paper', dir).source).toBe('path');
+    expect(() => resolveTheme('nope', dir)).toThrow(/themes\/nope\/.*paper \(site\)/);
+    expect(() => resolveTheme('nope', tmp())).toThrow(/paper \(core\)/);
+  });
+  it('rejects themes with another themeApi', () => {
+    const dir = tmp();
+    fs.mkdirSync(path.join(dir, 'themes/old'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'themes/old/theme.json'), JSON.stringify({ name: 'old', themeApi: 2, rtl: 'full' }));
+    expect(() => resolveTheme('old', dir)).toThrow(/themeApi 2/);
+  });
+  it('copies a built-in theme into themes/<name> and selects it', () => {
+    const dir = tmp();
+    scaffold({ dir, theme: 'paper', locales: ['en'] });
+    const dest = copyTheme(dir, 'ink', 'paper');
+    expect(dest).toBe(path.join(dir, 'themes/ink'));
+    for (const f of ['theme.json', 'styles/theme.css', 'components/PostCard.astro']) expect(fs.existsSync(path.join(dest, f))).toBe(true);
+    const manifest = JSON.parse(fs.readFileSync(path.join(dest, 'theme.json'), 'utf8'));
+    expect(manifest).toMatchObject({ name: 'ink', themeApi: 1, version: '0.1.0' });
+    expect(manifest.tokens).toEqual(resolveTheme('paper', tmp()).manifest.tokens);
+    expect(resolveTheme('ink', dir).source).toBe('site');
+    expect(() => copyTheme(dir, 'ink', 'paper')).toThrow(/exists/);
+    expect(() => copyTheme(dir, 'Bad Name', 'paper')).toThrow(/lowercase/);
+    setConfigTheme(dir, 'ink');
+    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).toContain("theme: 'ink'");
+    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).not.toContain("theme: 'paper'");
+  });
+  it('keeps the name when copying a theme under its own name', () => {
+    const dir = tmp();
+    copyTheme(dir, 'paper', 'paper');
+    expect(JSON.parse(fs.readFileSync(path.join(dir, 'themes/paper/theme.json'), 'utf8')).name).toBe('paper');
+    expect(resolveTheme('paper', dir).source).toBe('site');
   });
 });
 
