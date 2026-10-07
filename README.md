@@ -78,17 +78,36 @@ e2e                  Playwright: visual regression (en/fa × light/dark × deskt
 - Excalidraw drawings use the exported SVG if present. Otherwise a built-in renderer draws clean shapes without the hand-drawn style.
 - Visual-regression baselines are committed for macOS. CI generates Linux baselines on first run.
 
-## Development
+## Using this repo
 
 ```bash
 pnpm install
+pnpm link-cli        # once: makes the `paperwhite` command available everywhere
+```
+
+The same commands work from the repo root, from inside any site folder, or from any folder below one. At the repo root they target `examples/site`; use `--site docs` (or any folder) to pick another.
+
+| Command | What it does |
+| --- | --- |
+| `paperwhite dev` or `pnpm dev` | Live preview at http://localhost:4321, reloads when you edit notes |
+| `paperwhite build` or `pnpm build` | Build the static site into `dist/` and print the SEO audit |
+| `paperwhite preview` or `pnpm preview` | Serve the last build |
+| `paperwhite check` | Check links, images and frontmatter without building |
+| `paperwhite new "My post"` | Create a new note with frontmatter |
+| `pnpm docs:dev` | Live preview of the documentation site |
+
+`pnpm unlink-cli` removes the `paperwhite` command again. It is a symlink next to your `node` binary, so it follows that Node install.
+
+## Development
+
+```bash
 pnpm test                 # unit + golden-file tests (Vitest)
 pnpm typecheck
-pnpm site:build           # build the fixture site (audit reports the 2 deliberate errors)
-pnpm e2e                  # Playwright visual + behaviour tests (after site:build)
+pnpm build                # build the fixture site (audit reports the 2 deliberate errors)
+pnpm e2e                  # Playwright visual + behaviour tests (after a build)
 pnpm lhci                 # Lighthouse CI against the built site
 pnpm bench                # 1,000-post benchmark
-pnpm docs:build
+pnpm build:packages       # bundle the CLI for publishing
 ```
 
 Golden files live in `packages/core/test/golden/`. Update them with `pnpm vitest -u` after an intentional output change.
