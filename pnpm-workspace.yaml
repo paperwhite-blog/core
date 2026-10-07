@@ -1,7 +1,5 @@
 packages:
   - packages/*
-  - themes/*
-  - plugins/*
   - examples/*
   - docs
   - bench

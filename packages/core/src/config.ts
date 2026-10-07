@@ -64,7 +64,10 @@ export interface PaperwhiteUserConfig {
     routing?: 'prefix-other' | 'prefix-all';
     supported?: Record<string, LocaleConfig>;
   };
-  /** Theme package name or absolute directory */
+  /**
+   * Theme name. Looked up in `<site>/themes/<name>/` first, then in the themes built into core
+   * (`paper`). A relative or absolute directory path also works. Default `paper`.
+   */
   theme?: string;
   markdown?: {
     inlineTags?: 'link' | 'strip' | 'keep';
@@ -240,7 +243,7 @@ export function resolveConfig(user: PaperwhiteUserConfig, root: string): Resolve
     permalink: user.permalink ?? '/:slug/',
     trailingSlash: user.trailingSlash ?? true,
     locales: { default: defaultLocale, routing: user.locales?.routing ?? 'prefix-other', supported },
-    theme: user.theme ?? 'paperwhite-theme-paper',
+    theme: user.theme ?? 'paper',
     markdown: {
       inlineTags: user.markdown?.inlineTags ?? 'link',
       math: user.markdown?.math ?? 'frontmatter',

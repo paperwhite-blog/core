@@ -12,7 +12,7 @@ export default defineConfig({
   authors: { ada: { name: 'Ada Lovelace', url: 'https://paperwhite.example/about/' } },
   contentDir: '../../fixtures/vault',
   locales: { default: 'en', supported: { en: {}, fa: {} } },
-  theme: 'paperwhite-theme-paper',
+  theme: 'paper',
   seo: { twitterHandle: '@paperwhite', security: { contact: 'mailto:security@paperwhite.example' } },
-  editUrl: 'https://github.com/paperwhite/paperwhite/edit/main/fixtures/vault/',
+  editUrl: 'https://github.com/paperwhite-blog/core/edit/main/fixtures/vault/',
 });

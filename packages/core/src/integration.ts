@@ -8,7 +8,7 @@ import type { Plugin, ViteDevServer } from 'vite';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import tailwindcss from '@tailwindcss/vite';
 import { resolveConfig, serializableConfig, type PaperwhiteUserConfig, type ResolvedConfig } from './config.ts';
-import { resolveTheme, cascade, type ResolvedTheme } from './theme/resolve.ts';
+import { resolveTheme, cascade, coreDir, type ResolvedTheme } from './theme/resolve.ts';
 import { buildStrings } from './i18n/strings.ts';
 import { assetRegistry, copyAssets, loadRegistry, mimeOf, registerAsset } from './content/assets.ts';
 import { runPagefind } from './build/pagefind.ts';
@@ -18,8 +18,8 @@ import { vaultState } from './content/loader.ts';
 
 /** Native deps: kept external and imported by absolute path (the site may not depend on them directly). */
 const NATIVE = new Set(['@resvg/resvg-js', 'sharp', 'pagefind', 'satori']);
+const isBare = (id: string) => !id.startsWith('.') && !id.startsWith('/') && !id.startsWith('\0') && !id.startsWith('virtual:') && !/^[a-z]+:/i.test(id);
 
-const coreDir = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 
 function registerKatex() {
@@ -29,8 +29,37 @@ function registerKatex() {
   for (const f of fs.readdirSync(fonts)) if (f.endsWith('.woff2')) registerAsset(`/_pw/katex/fonts/${f}`, path.join(fonts, f));
 }
 
+const posix = (p: string) => p.split(path.sep).join('/');
+
+/**
+ * Inline a theme (or site) stylesheet into the generated one, turning its `@import` and `url()`
+ * references into absolute paths. The generated stylesheet lives inside core, and theme folders
+ * live in the site, so bare package imports (`@fontsource-variable/...`) are resolved from core's
+ * dependencies and relative paths from the stylesheet's own folder. The file itself stays untouched.
+ */
+export function inlineStylesheet(file: string, resolvePkg: (id: string) => string | undefined = (id) => tryResolve(require, id)): string {
+  const dir = path.dirname(file);
+  const abs = (spec: string): string => {
+    if (/^(?:[a-z]+:|\/|#)/i.test(spec)) return spec; // http:, data:, absolute, fragment
+    if (spec.startsWith('.')) return posix(path.resolve(dir, spec));
+    return posix(resolvePkg(spec) ?? spec);
+  };
+  return fs
+    .readFileSync(file, 'utf8')
+    .replace(/@import\s+(?:url\()?(['"])([^'"]+)\1\)?/g, (_m, q: string, spec: string) => `@import ${q}${abs(spec)}${q}`)
+    .replace(/url\((['"]?)([^'")]+)\1\)/g, (_m, q: string, spec: string) => `url(${q}${abs(spec)}${q})`);
+}
+
+function tryResolve(req: NodeJS.Require, id: string): string | undefined {
+  try {
+    return req.resolve(id);
+  } catch {
+    return undefined;
+  }
+}
+
 function stylesheet(root: string, theme: ResolvedTheme): string {
-  const posix = (p: string) => p.split(path.sep).join('/');
+  const themeCss = path.join(theme.dir, 'styles/theme.css');
   const overrides = path.join(root, 'src/overrides/styles.css');
   return [
     `@import "tailwindcss" source(none);`,
@@ -40,8 +69,8 @@ function stylesheet(root: string, theme: ResolvedTheme): string {
     `@source "${posix(theme.dir)}";`,
     `@source "${posix(path.join(root, 'src'))}";`,
     `@import "${posix(path.join(coreDir, 'styles/base.css'))}";`,
-    fs.existsSync(path.join(theme.dir, 'styles/theme.css')) ? `@import "${posix(path.join(theme.dir, 'styles/theme.css'))}";` : '',
-    fs.existsSync(overrides) ? `@import "${posix(overrides)}";` : '',
+    fs.existsSync(themeCss) ? inlineStylesheet(themeCss) : '',
+    fs.existsSync(overrides) ? inlineStylesheet(overrides) : '',
   ].join('\n');
 }
 
@@ -51,13 +80,21 @@ function vitePlugin(config: ResolvedConfig, theme: ResolvedTheme): Plugin {
   // A css id inside core so Tailwind resolves `tailwindcss` from core's dependencies.
   const STYLES_ID = path.join(coreDir, 'styles/__paperwhite.generated.css');
   const dirs = { site: config.root, theme: theme.dir, core: coreDir };
+  const overridesDir = path.join(config.root, 'src/overrides');
+  // Resolved here, from core's own dependencies: route code is bundled into the site, where these packages are not visible.
+  const paths = {
+    ogFonts: {
+      inter: path.dirname(require.resolve('@fontsource/inter/package.json')),
+      vazirmatn: path.dirname(require.resolve('@fontsource/vazirmatn/package.json')),
+    },
+  };
   const strings = Object.fromEntries(
     Object.keys(config.locales.supported).map((l) => [l, buildStrings(l, theme.manifest.i18n ?? {}, config.i18n)]),
   );
   return {
     name: 'paperwhite',
     enforce: 'pre',
-    resolveId(id: string) {
+    async resolveId(id: string, importer?: string) {
       if (NATIVE.has(id) && this.environment?.name !== 'client') return { id: require.resolve(id), external: true };
       if (id === VIRTUAL) return RESOLVED;
       if (id === '@pw/styles.css') return STYLES_ID;
@@ -65,6 +102,20 @@ function vitePlugin(config: ResolvedConfig, theme: ResolvedTheme): Plugin {
         const f = cascade(id, dirs);
         if (!f) this.error(`PaperWhite: cannot resolve ${id} (looked in src/overrides, ${theme.manifest.name}, core)`);
         return f;
+      }
+      // Theme folders and src/overrides live in the site, but import packages that core depends on
+      // (`@paperwhite/core/runtime`, `@fontsource-variable/*`). With a strict package manager those are
+      // not visible from the site, so fall back to resolving them from core.
+      if (importer && isBare(id) && (importer.startsWith(theme.dir) || importer.startsWith(overridesDir))) {
+        const normal = await this.resolve(id, importer, { skipSelf: true });
+        if (normal) return normal;
+        const [bare, query] = id.split('?') as [string, string | undefined];
+        try {
+          const file = require.resolve(bare);
+          return query ? `${file}?${query}` : file;
+        } catch {
+          return null;
+        }
       }
       return null;
     },
@@ -74,9 +125,14 @@ function vitePlugin(config: ResolvedConfig, theme: ResolvedTheme): Plugin {
           `export const config = ${JSON.stringify(serializableConfig(config))};`,
           `export const theme = ${JSON.stringify(theme.manifest)};`,
           `export const strings = ${JSON.stringify(strings)};`,
+          `export const paths = ${JSON.stringify(paths)};`,
         ].join('\n');
       }
-      if (id === STYLES_ID) return stylesheet(config.root, theme);
+      if (id === STYLES_ID) {
+        // theme.css and src/overrides/styles.css are inlined into this module: re-generate it when they change.
+        for (const f of [path.join(theme.dir, 'styles/theme.css'), path.join(overridesDir, 'styles.css')]) if (fs.existsSync(f)) this.addWatchFile(f);
+        return stylesheet(config.root, theme);
+      }
       return null;
     },
     configureServer(server: ViteDevServer) {
@@ -134,7 +190,7 @@ export default function paperwhite(user: PaperwhiteUserConfig, opts: Integration
         const root = fileURLToPath(astro.root);
         config = resolveConfig(user, root);
         theme = resolveTheme(config.theme, root);
-        logger.info(`theme ${theme.manifest.name} · vault ${path.relative(root, config.contentDir) || '.'}`);
+        logger.info(`theme ${theme.manifest.name} (${theme.source}) · vault ${path.relative(root, config.contentDir) || '.'}`);
         registerKatex();
         addWatchFile(path.join(theme.dir, 'theme.json'));
         const integrations: AstroIntegration[] = [];
@@ -161,7 +217,7 @@ export default function paperwhite(user: PaperwhiteUserConfig, opts: Integration
           vite: {
             plugins: [vitePlugin(config, theme) as never, tailwindcss() as never],
             ssr: {
-              noExternal: ['@paperwhite/core', /^paperwhite-theme-/, /^@paperwhite\//],
+              noExternal: ['@paperwhite/core', /^@paperwhite\//],
             },
           },
         });

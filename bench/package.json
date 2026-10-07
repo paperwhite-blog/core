@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@paperwhite/core": "workspace:*",
-    "astro": "^7.3.5",
-    "paperwhite-theme-paper": "workspace:*"
+    "astro": "^7.3.5"
   }
 }
