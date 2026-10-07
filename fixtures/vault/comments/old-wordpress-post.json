@@ -1,0 +1,5 @@
+[
+  { "id": 1, "parent": 0, "author": "Ada Lovelace", "url": "https://example.org/ada", "date": "2019-05-21T10:00:00Z", "content": "<p>Great post! See <a href=\"https://example.org\">my notes</a>.</p>" },
+  { "id": 2, "parent": 1, "author": "Charles Babbage", "date": "2019-05-21T12:30:00Z", "content": "<p>Agreed.</p><script>alert('xss')</script>" },
+  { "id": 3, "parent": 0, "author": "مریم", "date": "2019-05-22T08:00:00Z", "content": "<p>نوشتهٔ خوبی بود.</p>" }
+]
