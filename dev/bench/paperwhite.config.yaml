@@ -1,0 +1,8 @@
+site:
+  url: https://bench.example
+  title: Bench
+contentDir: ./vault
+locales:
+  supported:
+    en: {}
+    fa: {}

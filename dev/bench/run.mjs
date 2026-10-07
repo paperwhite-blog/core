@@ -10,13 +10,13 @@ const sh = (cmd) => {
   const out = execSync(cmd, { cwd: here, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   return { ms: Date.now() - t, out };
 };
-for (const d of ['.astro', 'node_modules/.astro', 'dist', '.paperwhite']) fs.rmSync(path.join(here, d), { recursive: true, force: true });
-const cold = sh('pnpm exec astro build');
+for (const d of ['dist', '.paperwhite']) fs.rmSync(path.join(here, d), { recursive: true, force: true });
+const cold = sh('pnpm exec paperwhite build');
 const line = (o) => o.split('\n').find((l) => l.includes('vault loaded')) ?? '';
 console.log(`cold:        ${(cold.ms / 1000).toFixed(1)}s  ${line(cold.out).replace(/.*\] /, '')}`);
 const f = path.join(here, 'vault/posts/post-0042.md');
 fs.appendFileSync(f, `\nEdited at ${Date.now()}.\n`);
-const inc = sh('pnpm exec astro build');
+const inc = sh('pnpm exec paperwhite build');
 console.log(`incremental: ${(inc.ms / 1000).toFixed(1)}s  ${line(inc.out).replace(/.*\] /, '')}`);
 const pages = (inc.out.match(/(\d+) page\(s\) built/) ?? [])[1];
 console.log(`pages: ${pages}`);

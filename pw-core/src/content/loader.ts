@@ -54,11 +54,11 @@ async function writeReports(config: ResolvedConfig, result: VaultResult, cacheDi
  * stored on the entry, so Astro's own Markdown processor is never involved.
  * Unchanged notes reuse their cached render (digest covers source + link surface).
  */
-export function paperwhiteLoader(user: PaperwhiteUserConfig): Loader {
+export function paperwhiteLoader(user: PaperwhiteUserConfig, siteRoot?: string): Loader {
   return {
     name: 'paperwhite-vault',
     load: async (context: LoaderContext) => {
-      const root = fileURLToPath(context.config.root);
+      const root = siteRoot ? path.resolve(siteRoot) : fileURLToPath(context.config.root);
       const config = resolveConfig(user, root);
       const cacheDir = path.join(root, '.paperwhite');
       const isDev = !!context.watcher;

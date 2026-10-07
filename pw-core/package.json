@@ -10,6 +10,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./config": "./src/config.ts",
+    "./config/load": "./src/config/load.ts",
     "./content": "./src/content/collections.ts",
     "./vault": "./src/content/vault.ts",
     "./pipeline": "./src/pipeline/index.ts",
@@ -100,7 +101,8 @@
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
     "unist-util-visit-parents": "^6.0.2",
-    "vfile": "^6.0.3"
+    "vfile": "^6.0.3",
+    "yaml": "^2.8.0"
   },
   "devDependencies": {
     "@types/hast": "^3.0.5",

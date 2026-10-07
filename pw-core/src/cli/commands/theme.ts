@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { defineCommand } from 'citty';
 import pc from 'picocolors';
+import { parseDocument } from 'yaml';
 import { resolveTheme, listThemes, coreDir, siteThemesDir } from '../../theme/resolve.ts';
 import { loadSiteConfig, findConfigFile, resolveSite } from '../site.ts';
 
@@ -10,7 +11,7 @@ function slots(dir: string, kind: 'components' | 'layouts'): string[] {
   return fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith('.astro')).map((f) => f.replace(/\.astro$/, '')) : [];
 }
 
-/** Rewrite core-relative imports so an ejected file works from `src/overrides/`. */
+/** Rewrite core-relative imports so an ejected file works from `overrides/`. */
 export function rewriteEjected(source: string, from: 'core' | 'theme'): string {
   if (from === 'theme') return source;
   return source
@@ -19,15 +20,13 @@ export function rewriteEjected(source: string, from: 'core' | 'theme'): string {
     .replace(/(['"])\.\.\/components\/([\w-]+\.astro)\1/g, `'@paperwhite/core/components/$2'`);
 }
 
-/** Point `theme:` in paperwhite.config.* at `name` (adds the key if missing). Returns the file edited. */
+/** Point `theme:` in paperwhite.config.yaml at `name`, keeping comments and order. Returns the file edited. */
 export function setConfigTheme(root: string, name: string): string | undefined {
   const file = findConfigFile(root);
   if (!file) return undefined;
-  const src = fs.readFileSync(file, 'utf8');
-  const next = /theme:\s*['"][^'"]*['"]/.test(src)
-    ? src.replace(/theme:\s*['"][^'"]*['"]/, `theme: '${name}'`)
-    : src.replace(/defineConfig\(\{/, `defineConfig({\n  theme: '${name}',`);
-  if (next !== src) fs.writeFileSync(file, next);
+  const doc = parseDocument(fs.readFileSync(file, 'utf8'));
+  doc.set('theme', name);
+  fs.writeFileSync(file, doc.toString());
   return file;
 }
 
@@ -64,7 +63,7 @@ const list = defineCommand({
     }
     if (active.source === 'path') console.log(`  ${pc.green('●')} ${active.manifest.name.padEnd(18)} ${pc.cyan(path.relative(root, active.dir))}`);
     console.log(`\n${pc.bold(active.manifest.name)} ${pc.dim(active.manifest.version ?? '')} · themeApi ${active.manifest.themeApi} · RTL ${active.manifest.rtl}\n`);
-    const odir = path.join(root, 'src/overrides');
+    const odir = path.join(root, 'overrides');
     for (const kind of ['components', 'layouts'] as const) {
       console.log(pc.bold(kind));
       const all = [...new Set([...slots(coreDir, kind), ...slots(active.dir, kind)])].sort();
@@ -100,7 +99,7 @@ const create = defineCommand({
 });
 
 const eject = defineCommand({
-  meta: { name: 'eject', description: 'Copy one component or layout into src/overrides/ to customize it' },
+  meta: { name: 'eject', description: 'Copy one component or layout into overrides/ to customize it' },
   args: {
     name: { type: 'positional', required: true, description: 'Component name, e.g. Header or layouts/Post' },
     force: { type: 'boolean', description: 'Overwrite an existing override' },
@@ -119,7 +118,7 @@ const eject = defineCommand({
       process.exitCode = 1;
       return;
     }
-    const dest = path.join(root, 'src/overrides', kind, `${name}.astro`);
+    const dest = path.join(root, 'overrides', kind, `${name}.astro`);
     if (fs.existsSync(dest) && !args.force) {
       console.error(pc.red(`${path.relative(root, dest)} exists (use --force)`));
       process.exitCode = 1;

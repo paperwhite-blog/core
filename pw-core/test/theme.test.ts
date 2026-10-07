@@ -28,9 +28,9 @@ describe('theme resolution', () => {
     expect(cascade('@pw/components/Footer', dirs)).toBe(path.join(t.dir, 'components/Footer.astro'));
     expect(cascade('@pw/core/components/Footer', dirs)).toBe(path.join(coreDir, 'components/Footer.astro'));
     expect(cascade('@pw/components/Header', dirs)).toBe(path.join(coreDir, 'components/Header.astro'));
-    fs.mkdirSync(path.join(site, 'src/overrides/components'), { recursive: true });
-    fs.writeFileSync(path.join(site, 'src/overrides/components/Footer.astro'), '');
-    expect(cascade('@pw/components/Footer', dirs)).toBe(path.join(site, 'src/overrides/components/Footer.astro'));
+    fs.mkdirSync(path.join(site, 'overrides/components'), { recursive: true });
+    fs.writeFileSync(path.join(site, 'overrides/components/Footer.astro'), '');
+    expect(cascade('@pw/components/Footer', dirs)).toBe(path.join(site, 'overrides/components/Footer.astro'));
     expect(cascade('@pw/theme/components/Footer', dirs)).toBe(path.join(t.dir, 'components/Footer.astro'));
   });
 });

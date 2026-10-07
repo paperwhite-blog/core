@@ -14,11 +14,14 @@ export async function gitLastUpdated(dir: string): Promise<Map<string, Date>> {
     const { stdout: top } = await run('git', ['rev-parse', '--show-toplevel'], { cwd: dir });
     const root = top.trim();
     // Newest first, with rename detection: a pure rename (R100) is not a content change, so the
-    // new path inherits the date of the last commit that touched the old one.
-    const { stdout } = await run('git', ['log', '--name-status', '-M', '--format=%x00%cI', '--', '.'], {
+    // new path inherits the date of the last commit that touched the old one. The walk is not
+    // limited to the vault path: a rename from outside it only shows up as a rename without a pathspec.
+    const { stdout } = await run('git', ['log', '--name-status', '-M', '--format=%x00%cI'], {
       cwd: dir,
       maxBuffer: 256 * 1024 * 1024,
     });
+    const prefix = `${path.relative(root, path.resolve(dir)).split(path.sep).join('/')}/`.replace(/^\/+/, '');
+    const inVault = (p: string) => prefix === '/' || p.startsWith(prefix);
     const alias = new Map<string, string>();
     const canonical = (p: string): string => {
       let cur = p;
@@ -26,7 +29,9 @@ export async function gitLastUpdated(dir: string): Promise<Map<string, Date>> {
       return cur;
     };
     const record = (p: string, date: Date) => {
-      const abs = path.join(root, canonical(p));
+      const to = canonical(p);
+      if (!inVault(to)) return;
+      const abs = path.join(root, to);
       if (!map.has(abs)) map.set(abs, date);
     };
     let current: Date | undefined;
@@ -40,7 +45,7 @@ export async function gitLastUpdated(dir: string): Promise<Map<string, Date>> {
       if (status.startsWith('R') && b) {
         const similarity = Number(status.slice(1) || '0');
         const to = canonical(b);
-        if (similarity < 100 && !map.has(path.join(root, to))) map.set(path.join(root, to), current);
+        if (similarity < 100 && inVault(to) && !map.has(path.join(root, to))) map.set(path.join(root, to), current);
         alias.set(a, to);
       } else if (status.startsWith('C') && b) {
         record(b, current);

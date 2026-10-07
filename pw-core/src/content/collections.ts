@@ -6,17 +6,17 @@ import { paperwhiteLoader } from './loader.ts';
  * Content collections for a PaperWhite site. Use in `src/content.config.ts`:
  *
  * ```ts
- * import config from '../paperwhite.config';
  * import { paperwhiteCollections } from '@paperwhite/core/content';
- * export const collections = paperwhiteCollections(config);
+ * export const collections = paperwhiteCollections(readUserConfig(root), root);
  * ```
  *
  * With `mdx: true`, `.mdx` files in the vault are loaded as a second collection rendered by
  * @astrojs/mdx. They bypass the Obsidian pipeline (no wikilinks, callouts, backlinks).
  */
-export function paperwhiteCollections(config: PaperwhiteUserConfig) {
+/** `root`: the site root when it differs from the Astro project root (PaperWhite's generated Astro root). */
+export function paperwhiteCollections(config: PaperwhiteUserConfig, root?: string) {
   const collections: Record<string, { type: 'content_layer'; loader: unknown }> = {
-    notes: { type: 'content_layer' as const, loader: paperwhiteLoader(config) },
+    notes: { type: 'content_layer' as const, loader: paperwhiteLoader(config, root) },
   };
   if (config.mdx) {
     collections.mdx = {

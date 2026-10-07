@@ -8,6 +8,7 @@ import { scaffold } from '../src/cli/commands/init.ts';
 import { noteTemplate } from '../src/cli/commands/new.ts';
 import { rewriteEjected, copyTheme, setConfigTheme } from '../src/cli/commands/theme.ts';
 import { resolveTheme, listThemes } from '../src/theme/resolve.ts';
+import { readUserConfig } from '../src/config/load.ts';
 import { extractExternalLinks, checkExternalLinks } from '../src/cli/external.ts';
 import { resolveConfig } from '../src/config.ts';
 import { buildVault } from '../src/content/vault.ts';
@@ -60,11 +61,12 @@ describe('init / new / eject', () => {
   it('scaffolds a buildable site layout', () => {
     const dir = tmp();
     const files = scaffold({ dir, theme: 'paper', locales: ['en', 'fa'] });
-    expect(files).toEqual(expect.arrayContaining(['package.json', 'paperwhite.config.ts', 'astro.config.ts', 'src/content.config.ts', 'content/posts/hello-world.md', 'content/posts/fa/سلام.md']));
-    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).toContain("supported: { en: {}, fa: {} }");
-    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).toContain("theme: 'paper'");
-    expect(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).dependencies).not.toHaveProperty('paperwhite-theme-paper');
-    expect(files).toContain('themes/README.md');
+    expect(files).toEqual(expect.arrayContaining(['paperwhite.config.yaml', 'content/posts/hello-world.md', 'content/posts/fa/سلام.md', 'themes/README.md']));
+    expect(files).not.toContain('astro.config.ts');
+    const user = readUserConfig(dir);
+    expect(user.locales).toEqual({ default: 'en', supported: { en: {}, fa: {} } });
+    expect(user.theme).toBe('paper');
+    expect(user.plugins).toEqual([]);
     expect(resolveTheme('paper', dir).source).toBe('core');
   });
   it('writes note frontmatter', () => {
@@ -110,8 +112,10 @@ describe('themes', () => {
     expect(() => copyTheme(dir, 'ink', 'paper')).toThrow(/exists/);
     expect(() => copyTheme(dir, 'Bad Name', 'paper')).toThrow(/lowercase/);
     setConfigTheme(dir, 'ink');
-    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).toContain("theme: 'ink'");
-    expect(fs.readFileSync(path.join(dir, 'paperwhite.config.ts'), 'utf8')).not.toContain("theme: 'paper'");
+    const yaml = fs.readFileSync(path.join(dir, 'paperwhite.config.yaml'), 'utf8');
+    expect(yaml).toMatch(/^theme: ink$/m);
+    expect(yaml).toContain('# A folder under themes/'); // comments survive the edit
+    expect(readUserConfig(dir).theme).toBe('ink');
   });
   it('keeps the name when copying a theme under its own name', () => {
     const dir = tmp();

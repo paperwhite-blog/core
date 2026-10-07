@@ -1,0 +1,6 @@
+# `mdx: true` loads .mdx notes through @astrojs/mdx alongside regular Obsidian notes.
+site:
+  url: https://mdx.example
+  title: MDX example
+contentDir: ./content
+mdx: true

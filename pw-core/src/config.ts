@@ -44,8 +44,10 @@ export interface PaperwhiteUserConfig {
     /** Organization name for JSON-LD publisher; defaults to the site title */
     organization?: string;
     social?: { twitter?: string; github?: string; mastodon?: string; [k: string]: string | undefined };
-    /** Per-locale title/description overrides */
-    i18n?: Record<string, { title?: string; description?: string }>;
+    /** Footer text (replaces "Built with PaperWhite"); per-locale via `i18n` */
+    footer?: string;
+    /** Per-locale title/description/footer overrides */
+    i18n?: Record<string, { title?: string; description?: string; footer?: string }>;
   };
   authors?: Record<string, AuthorConfig>;
   /** Vault root, relative to the site root. Default `./content` */
@@ -80,6 +82,8 @@ export interface PaperwhiteUserConfig {
     rehypePlugins?: unknown[];
   };
   plugins?: PaperwhitePlugin[];
+  /** Folders the plugins were loaded from (set by the YAML loader; part of the render cache key) */
+  pluginSources?: string[];
   seo?: {
     titleTemplate?: string;
     twitterHandle?: string;
@@ -138,6 +142,7 @@ export interface ResolvedConfig {
     rehypePlugins: unknown[];
   };
   plugins: PaperwhitePlugin[];
+  pluginSources: string[];
   seo: {
     titleTemplate: string;
     twitterHandle?: string;
@@ -254,6 +259,7 @@ export function resolveConfig(user: PaperwhiteUserConfig, root: string): Resolve
       rehypePlugins: user.markdown?.rehypePlugins ?? [],
     },
     plugins: user.plugins ?? [],
+    pluginSources: user.pluginSources ?? [],
     seo: {
       titleTemplate: user.seo?.titleTemplate ?? '%s · %site',
       twitterHandle: user.seo?.twitterHandle,

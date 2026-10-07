@@ -73,7 +73,7 @@ export function resolveTheme(theme: string, root: string): ResolvedTheme {
 export const SLOT_KINDS = ['components', 'layouts'] as const;
 
 /**
- * Override cascade: site `src/overrides/<kind>/<Name>` → theme `<kind>/<Name>` → core `<kind>/<Name>`.
+ * Override cascade: site `overrides/<kind>/<Name>` → theme `<kind>/<Name>` → core `<kind>/<Name>`.
  * `@pw/theme/...` skips site overrides; `@pw/core/...` resolves to core only (for wrapping).
  */
 export function cascade(spec: string, dirs: { site: string; theme: string; core: string }): string | undefined {
@@ -81,7 +81,7 @@ export function cascade(spec: string, dirs: { site: string; theme: string; core:
   if (!m) return undefined;
   const [, scope, kind, name] = m as unknown as [string, string | undefined, string, string];
   const bases =
-    scope === 'core' ? [dirs.core] : scope === 'theme' ? [dirs.theme, dirs.core] : [path.join(dirs.site, 'src/overrides'), dirs.theme, dirs.core];
+    scope === 'core' ? [dirs.core] : scope === 'theme' ? [dirs.theme, dirs.core] : [path.join(dirs.site, 'overrides'), dirs.theme, dirs.core];
   const names = /\.[a-z]+$/.test(name) ? [name] : [`${name}.astro`, `${name}.ts`, name];
   for (const b of bases) for (const n of names) {
     const f = path.join(b, kind, n);

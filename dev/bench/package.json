@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "generate": "node generate.mjs",
-    "build": "astro build",
+    "build": "paperwhite build",
     "bench": "node generate.mjs && node run.mjs"
   },
   "dependencies": {

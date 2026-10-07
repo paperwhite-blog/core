@@ -1,14 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { createJiti } from 'jiti';
-import { resolveConfig, type PaperwhiteUserConfig, type ResolvedConfig } from '../config.ts';
+import { resolveConfig, type ResolvedConfig } from '../config.ts';
+import { CONFIG_FILES, findConfigFile, readUserConfig } from '../config/load.ts';
 
-export const CONFIG_FILES = ['paperwhite.config.ts', 'paperwhite.config.mts', 'paperwhite.config.js', 'paperwhite.config.mjs'];
-
-export function findConfigFile(root: string): string | undefined {
-  for (const f of CONFIG_FILES) if (fs.existsSync(path.join(root, f))) return path.join(root, f);
-  return undefined;
-}
+export { CONFIG_FILES, findConfigFile };
 
 const SKIP = new Set(['node_modules', 'dist', '.git', '.astro', '.paperwhite']);
 
@@ -32,14 +27,14 @@ function findSitesBelow(dir: string, depth = 3): string[] {
 /**
  * Find the site to operate on, so commands work from anywhere inside a project:
  * 1. an explicit `--site <dir>` (or PAPERWHITE_SITE)
- * 2. the nearest folder (cwd or a parent) containing paperwhite.config.ts
+ * 2. the nearest folder (cwd or a parent) containing paperwhite.config.yaml
  * 3. a `"paperwhite": { "site": "<dir>" }` default in a parent package.json (monorepos)
  */
 export function resolveSite(explicit?: string, start = process.cwd()): string {
   const chosen = explicit ?? process.env.PAPERWHITE_SITE;
   if (chosen) {
     const dir = path.resolve(start, chosen);
-    if (!findConfigFile(dir)) throw new Error(`No paperwhite.config.ts in ${dir}`);
+    if (!findConfigFile(dir)) throw new Error(`No paperwhite.config.yaml in ${dir}`);
     return dir;
   }
   let dir = path.resolve(start);
@@ -59,18 +54,13 @@ export function resolveSite(explicit?: string, start = process.cwd()): string {
   const below = findSitesBelow(start);
   const hint = below.length
     ? `Sites found below this folder:\n${below.map((d) => `  ${path.relative(start, d)}`).join('\n')}\nRun the command inside one of them, or pass --site <dir>.`
-    : 'Create one with `paperwhite init my-blog`.';
-  throw new Error(`No PaperWhite site here (no paperwhite.config.ts in this folder or its parents).\n${hint}`);
+    : 'Clone https://github.com/paperwhite-blog/core and run `paperwhite init` inside it.';
+  throw new Error(`No PaperWhite site here (no paperwhite.config.yaml in this folder or its parents).\n${hint}`);
 }
 
-/** Load and resolve `paperwhite.config.ts` (TypeScript supported via jiti). */
+/** Load, validate and resolve `paperwhite.config.yaml` (plugins instantiated from `plugins/`). */
 export async function loadSiteConfig(root: string): Promise<ResolvedConfig> {
-  const file = findConfigFile(root);
-  if (!file) throw new Error(`No paperwhite.config.ts found in ${root}. Run \`paperwhite init\` first.`);
-  const jiti = createJiti(import.meta.url, { interopDefault: true, moduleCache: false });
-  const mod = (await jiti.import(file)) as PaperwhiteUserConfig | { default: PaperwhiteUserConfig };
-  const user = 'default' in mod ? mod.default : mod;
-  return resolveConfig(user, root);
+  return resolveConfig(readUserConfig(root), root);
 }
 
 /** Locate the site's `astro` binary. */

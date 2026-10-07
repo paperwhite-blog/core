@@ -9,6 +9,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import tailwindcss from '@tailwindcss/vite';
 import { resolveConfig, serializableConfig, type PaperwhiteUserConfig, type ResolvedConfig } from './config.ts';
 import { resolveTheme, cascade, coreDir, type ResolvedTheme } from './theme/resolve.ts';
+import { findConfigFile } from './config/load.ts';
 import { buildStrings } from './i18n/strings.ts';
 import { assetRegistry, copyAssets, loadRegistry, mimeOf, registerAsset } from './content/assets.ts';
 import { runPagefind } from './build/pagefind.ts';
@@ -60,14 +61,14 @@ function tryResolve(req: NodeJS.Require, id: string): string | undefined {
 
 function stylesheet(root: string, theme: ResolvedTheme): string {
   const themeCss = path.join(theme.dir, 'styles/theme.css');
-  const overrides = path.join(root, 'src/overrides/styles.css');
+  const overrides = path.join(root, 'overrides/styles.css');
   return [
     `@import "tailwindcss" source(none);`,
     `@source "${posix(path.join(coreDir, 'components'))}";`,
     `@source "${posix(path.join(coreDir, 'layouts'))}";`,
     `@source "${posix(path.join(coreDir, 'routes'))}";`,
     `@source "${posix(theme.dir)}";`,
-    `@source "${posix(path.join(root, 'src'))}";`,
+    `@source "${posix(path.join(root, 'overrides'))}";`,
     `@import "${posix(path.join(coreDir, 'styles/base.css'))}";`,
     fs.existsSync(themeCss) ? inlineStylesheet(themeCss) : '',
     fs.existsSync(overrides) ? inlineStylesheet(overrides) : '',
@@ -80,7 +81,7 @@ function vitePlugin(config: ResolvedConfig, theme: ResolvedTheme): Plugin {
   // A css id inside core so Tailwind resolves `tailwindcss` from core's dependencies.
   const STYLES_ID = path.join(coreDir, 'styles/__paperwhite.generated.css');
   const dirs = { site: config.root, theme: theme.dir, core: coreDir };
-  const overridesDir = path.join(config.root, 'src/overrides');
+  const overridesDir = path.join(config.root, 'overrides');
   // Resolved here, from core's own dependencies: route code is bundled into the site, where these packages are not visible.
   const paths = {
     ogFonts: {
@@ -100,10 +101,10 @@ function vitePlugin(config: ResolvedConfig, theme: ResolvedTheme): Plugin {
       if (id === '@pw/styles.css') return STYLES_ID;
       if (id.startsWith('@pw/')) {
         const f = cascade(id, dirs);
-        if (!f) this.error(`PaperWhite: cannot resolve ${id} (looked in src/overrides, ${theme.manifest.name}, core)`);
+        if (!f) this.error(`PaperWhite: cannot resolve ${id} (looked in overrides/, ${theme.manifest.name}, core)`);
         return f;
       }
-      // Theme folders and src/overrides live in the site, but import packages that core depends on
+      // Theme folders and overrides/ live in the site, but import packages that core depends on
       // (`@paperwhite/core/runtime`, `@fontsource-variable/*`). With a strict package manager those are
       // not visible from the site, so fall back to resolving them from core.
       if (importer && isBare(id) && (importer.startsWith(theme.dir) || importer.startsWith(overridesDir))) {
@@ -129,7 +130,7 @@ function vitePlugin(config: ResolvedConfig, theme: ResolvedTheme): Plugin {
         ].join('\n');
       }
       if (id === STYLES_ID) {
-        // theme.css and src/overrides/styles.css are inlined into this module: re-generate it when they change.
+        // theme.css and overrides/styles.css are inlined into this module: re-generate it when they change.
         for (const f of [path.join(theme.dir, 'styles/theme.css'), path.join(overridesDir, 'styles.css')]) if (fs.existsSync(f)) this.addWatchFile(f);
         return stylesheet(config.root, theme);
       }
@@ -178,6 +179,12 @@ const ROUTES: [pattern: string, file: string][] = [
 export interface IntegrationOptions {
   /** Fail the build on audit errors (also `PAPERWHITE_STRICT=1`) */
   strict?: boolean;
+  /**
+   * The PaperWhite site root (where paperwhite.config.yaml, content/, themes/ live) when it is not
+   * the Astro project root. The CLI generates the Astro root under `<site>/.paperwhite/site/` and
+   * passes the site here; `dist/` and `public/` are then taken from the site.
+   */
+  root?: string;
 }
 
 export default function paperwhite(user: PaperwhiteUserConfig, opts: IntegrationOptions = {}): AstroIntegration {
@@ -187,12 +194,15 @@ export default function paperwhite(user: PaperwhiteUserConfig, opts: Integration
     name: '@paperwhite/core',
     hooks: {
       'astro:config:setup': async ({ config: astro, updateConfig, injectRoute, logger, addWatchFile }) => {
-        const root = fileURLToPath(astro.root);
+        const astroRoot = fileURLToPath(astro.root);
+        const root = opts.root ? path.resolve(opts.root) : astroRoot;
         config = resolveConfig(user, root);
         theme = resolveTheme(config.theme, root);
         logger.info(`theme ${theme.manifest.name} (${theme.source}) · vault ${path.relative(root, config.contentDir) || '.'}`);
         registerKatex();
         addWatchFile(path.join(theme.dir, 'theme.json'));
+        const configFile = findConfigFile(root);
+        if (configFile) addWatchFile(configFile);
         const integrations: AstroIntegration[] = [];
         if (config.mdx) {
           try {
@@ -208,6 +218,9 @@ export default function paperwhite(user: PaperwhiteUserConfig, opts: Integration
           }
         }
         updateConfig({
+          ...(opts.root
+            ? { outDir: pathToFileURL(`${path.join(root, 'dist')}/`), publicDir: pathToFileURL(`${path.join(root, 'public')}/`) }
+            : {}),
           site: config.site.url,
           trailingSlash: config.trailingSlash ? 'always' : 'never',
           build: { format: config.trailingSlash ? 'directory' : 'file', inlineStylesheets: 'always' },
@@ -216,6 +229,8 @@ export default function paperwhite(user: PaperwhiteUserConfig, opts: Integration
           integrations,
           vite: {
             plugins: [vitePlugin(config, theme) as never, tailwindcss() as never],
+            // the site (content, themes, overrides) and core live outside the Astro root
+            server: { fs: { allow: [root, coreDir, astroRoot] } },
             ssr: {
               noExternal: ['@paperwhite/core', /^@paperwhite\//],
             },

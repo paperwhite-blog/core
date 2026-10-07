@@ -104,6 +104,9 @@ function pipelineDigest(config: ResolvedConfig): string {
     for (const d of ['pipeline', 'content', 'i18n']) walk(path.join(src, d));
     for (const f of files.sort()) h.update(fsSync.readFileSync(f));
     for (const f of ['en.json', 'fa.json']) h.update(fsSync.readFileSync(path.join(src, '..', 'i18n', f)));
+    // plugin folders in the site render too: an edit there must invalidate cached HTML
+    for (const dir of config.pluginSources) if (fsSync.existsSync(dir)) walk(dir), files.push(dir);
+    for (const f of files.filter((f) => config.pluginSources.some((d) => f.startsWith(d))).sort()) h.update(fsSync.statSync(f).isFile() ? fsSync.readFileSync(f) : f);
     pipelineFingerprint = h.digest('hex');
   }
   const { remarkPlugins, rehypePlugins, ...markdown } = config.markdown;

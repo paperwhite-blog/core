@@ -22,61 +22,32 @@ export function scaffold(opts: InitOptions): string[] {
     fs.writeFileSync(file, content);
     written.push(rel);
   };
-  const v = opts.coreVersion ?? '^0.1.0';
-  const name = path.basename(path.resolve(dir)).toLowerCase().replace(/[^a-z0-9-]+/g, '-') || 'my-blog';
+  const supported = locales.map((l) => `    ${l}: {}`).join('\n');
   write(
-    'package.json',
-    `${JSON.stringify(
-      {
-        name,
-        private: true,
-        type: 'module',
-        scripts: { dev: 'paperwhite dev', build: 'paperwhite build', 'build:ci': 'paperwhite build --strict', preview: 'paperwhite preview', check: 'paperwhite check' },
-        dependencies: { '../../index.ts': v, astro: '^7.3.5', paperwhite: v },
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  const supported = locales.map((l) => `${l}: {}`).join(', ');
-  write(
-    'paperwhite.config.ts',
-    `import { defineConfig } from '../../config.ts';
+    'paperwhite.config.yaml',
+    `# PaperWhite site configuration. Full reference: pw-docs/configuration.md
+site:
+  url: ${opts.url ?? 'https://example.com'}
+  title: ${JSON.stringify(opts.title ?? 'My Blog')}
+  description: Notes from my Obsidian vault.
+  # footer: "© Me"            # replaces "Built with PaperWhite"
 
-export default defineConfig({
-  site: {
-    url: '${opts.url ?? 'https://example.com'}',
-    title: '${(opts.title ?? 'My Blog').replace(/'/g, "\\'")}',
-    description: 'Notes from my Obsidian vault.',
-  },
-  // Point this at your Obsidian vault (or a sub-folder of it).
-  contentDir: './content',
-  locales: { default: '${locales[0]}', supported: { ${supported} } },
-  // A folder name under themes/ (yours) or a built-in theme. \`paperwhite theme list\` shows both.
-  theme: '${theme}',
-});
+# Your notes. Point this at an Obsidian vault (or a sub-folder of it) if it lives elsewhere.
+contentDir: ./content
+
+locales:
+  default: ${locales[0]}
+  supported:
+${supported}
+
+# A folder under themes/ (yours) or a built-in theme. \`paperwhite theme list\` shows both.
+theme: ${theme}
+
+# Folders under plugins/, added with \`paperwhite add <owner/repo>\`.
+plugins: []
 `,
   );
-  write(
-    'astro.config.ts',
-    `import { defineConfig } from 'astro/config';
-import paperwhite from '../../index.ts';
-import config from './paperwhite.config';
-
-export default defineConfig({ integrations: [paperwhite(config)] });
-`,
-  );
-  write(
-    'src/content.config.ts',
-    `import { paperwhiteCollections } from '../../content/collections.ts';
-import config from '../paperwhite.config';
-
-export const collections = paperwhiteCollections(config);
-`,
-  );
-  write('src/env.d.ts', '/// <reference types="@paperwhite/core/client.d.ts" />\n');
-  write('tsconfig.json', `${JSON.stringify({ extends: 'astro/tsconfigs/strict', include: ['.astro/types.d.ts', 'src', '*.ts'] }, null, 2)}\n`);
-  write('.gitignore', 'node_modules/\ndist/\n.astro/\n.paperwhite/\n');
+  write('.gitignore', 'node_modules/\ndist/\n.paperwhite/\n');
   write('public/favicon.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#a4440f"/></svg>\n');
   const today = new Date().toISOString().slice(0, 10);
   write(
@@ -98,8 +69,8 @@ Each folder here is a theme: \`theme.json\` + \`styles/theme.css\`, plus optiona
 that replace PaperWhite's defaults one file at a time.
 
 - Start from the built-in theme: \`paperwhite theme new mytheme\` (copies it here and selects it).
-- Or drop any theme folder in and set \`theme: '<folder-name>'\` in paperwhite.config.ts.
-- Only tweak one piece? \`paperwhite theme eject Header\` copies a single component into src/overrides/.
+- Or drop any theme folder in and set \`theme: <folder-name>\` in paperwhite.config.yaml.
+- Only tweak one piece? \`paperwhite theme eject Header\` copies a single component into overrides/.
 
 Restart \`paperwhite dev\` after adding new files to a theme folder.
 `,
