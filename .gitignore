@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.astro/
+.paperwhite/
+*.log
+.DS_Store
+coverage/
+test-results/
+playwright-report/
+.lighthouseci/
+bench/vault/
+e2e/__screenshots__/**/*-actual.png
+e2e/__screenshots__/**/*-diff.png
+.vitest/

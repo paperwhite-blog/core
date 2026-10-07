@@ -1,0 +1,11 @@
+packages:
+  - packages/*
+  - themes/*
+  - plugins/*
+  - examples/*
+  - docs
+  - bench
+onlyBuiltDependencies:
+  - sharp
+  - esbuild
+  - "@resvg/resvg-js"
