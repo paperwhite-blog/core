@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.0 — 2026-10-08
+
+First release: the repository is the blog. Clone it, run `paperwhite init`, write. Earlier iterations (npm packages, `paperwhite-theme-paper`, TypeScript config) were never released; the entries below describe the changes relative to those drafts.
 
 ### Breaking
 
@@ -28,8 +30,3 @@
 - `@paperwhite/core/theme` exports `resolveTheme`, `listThemes`, `coreDir`.
 - `paperwhite init` writes `themes/README.md` explaining the theme folder.
 - `LICENSE` (MIT), `CONTRIBUTING.md`.
-
-## 0.1.0
-
-- First release of `@paperwhite/core`, `paperwhite` (CLI), `paperwhite-theme-paper`, `@paperwhite/plugin-mermaid` and `@paperwhite/plugin-excalidraw`.
-- Theme contract: `themeApi: 1`.
