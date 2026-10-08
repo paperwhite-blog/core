@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-10-08
+
+### Fixed
+
+- `paperwhite init` no longer rewrites git history. Repositories created with GitHub's **Use this template** keep their history and `origin`, so `git push` works right after init. A remote that points at `paperwhite-blog/core` (a direct clone) is still removed; `--fresh-history` is the opt-in way to start over.
+
 ## 0.1.0 — 2026-10-08
 
 First release: the repository is the blog. Clone it, run `paperwhite init`, write. Earlier iterations (npm packages, `paperwhite-theme-paper`, TypeScript config) were never released; the entries below describe the changes relative to those drafts.

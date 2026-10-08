@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseWxr, importWxr, htmlToMarkdown, readWxr } from '../src/cli/import/wxr.ts';
 import { scaffold } from './helpers.ts';
-import { initSite, writeConfig, stripDevFiles, DEV_PATHS } from '../src/cli/commands/init.ts';
+import { initSite, writeConfig, stripDevFiles, resetGit, DEV_PATHS } from '../src/cli/commands/init.ts';
 import { noteTemplate } from '../src/cli/commands/new.ts';
 import { rewriteEjected, copyTheme, setConfigTheme } from '../src/cli/commands/theme.ts';
 import { resolveTheme, listThemes } from '../src/theme/resolve.ts';
@@ -75,7 +75,7 @@ describe('init / new / eject', () => {
     fs.writeFileSync(path.join(dir, 'paperwhite.slugs.json'), '{}');
     fs.writeFileSync(path.join(dir, 'pnpm-workspace.yaml'), 'packages:\n  - pw-core\n  - dev/*\n');
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'paperwhite', scripts: { dev: 'paperwhite dev', build: 'paperwhite build', test: 'x', e2e: 'y', lhci: 'z' }, dependencies: { astro: '1' }, devDependencies: { vitest: '1' } }));
-    const r = initSite(dir, { title: 'Ink & Paper', description: 'Notes.', url: 'https://ink.example/', author: 'Ada', locales: ['en', 'fa'], deploy: 'github-pages', removeSamples: true, freshHistory: true }, { git: false, install: false });
+    const r = initSite(dir, { title: 'Ink & Paper', description: 'Notes.', url: 'https://ink.example/', author: 'Ada', locales: ['en', 'fa'], deploy: 'github-pages', removeSamples: true }, { git: false, install: false });
     const user = readUserConfig(dir);
     expect(user.site).toMatchObject({ title: 'Ink & Paper', url: 'https://ink.example', description: 'Notes.', author: 'Ada' });
     expect(user.locales).toEqual({ default: 'en', supported: { en: {}, fa: {} } });
@@ -98,12 +98,12 @@ describe('init / new / eject', () => {
     scaffold({ dir });
     fs.mkdirSync(path.join(dir, 'pw-core'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'pw-core/package.json'), '{"name":"@paperwhite/core","version":"0.1.0"}');
-    const r = initSite(dir, { title: 'T', description: 'D', url: 'https://t.example', locales: ['en'], deploy: 'netlify', removeSamples: false, freshHistory: false }, { git: false, install: false });
+    const r = initSite(dir, { title: 'T', description: 'D', url: 'https://t.example', locales: ['en'], deploy: 'netlify', removeSamples: false }, { git: false, install: false });
     expect(r.samples).toEqual([]);
     expect(fs.existsSync(path.join(dir, 'content/posts/hello-world.md'))).toBe(true);
     expect(fs.readFileSync(path.join(dir, '.github/workflows/deploy.yml'), 'utf8')).toContain('DEPLOY_HOOK_URL');
     expect(stripDevFiles(dir)).toEqual([]);
-    expect(writeConfig(dir, { title: 'T2', description: 'D', url: 'https://t.example', locales: ['fa'], deploy: 'none', removeSamples: false, freshHistory: false })).toMatch(/paperwhite\.config\.yaml$/);
+    expect(writeConfig(dir, { title: 'T2', description: 'D', url: 'https://t.example', locales: ['fa'], deploy: 'none', removeSamples: false })).toMatch(/paperwhite\.config\.yaml$/);
     expect(readUserConfig(dir).locales!.default).toBe('fa');
   });
   it('writes note frontmatter', () => {
@@ -224,6 +224,33 @@ describe('add', () => {
     extractTarGz(gzipSync(tar), dest);
     expect(fs.existsSync(path.join(dest, 'theme.json'))).toBe(true);
     expect(detectKind(dest).kind).toBe('theme');
+  });
+});
+
+describe('init git handling', () => {
+  const run = (dir: string, args: string[]) => spawnSync('git', args, { cwd: dir, encoding: 'utf8' });
+  const repo = (origin: string) => {
+    const dir = tmp();
+    run(dir, ['init', '-q', '-b', 'main']);
+    run(dir, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'template']);
+    run(dir, ['remote', 'add', 'origin', origin]);
+    return dir;
+  };
+  it('leaves history and origin alone for a repository made from the GitHub template', () => {
+    const dir = repo('git@github.com:someone/my-blog.git');
+    const log: string[] = [];
+    resetGit(dir, false, (l) => log.push(l));
+    expect(run(dir, ['remote', 'get-url', 'origin']).stdout.trim()).toBe('git@github.com:someone/my-blog.git');
+    expect(run(dir, ['log', '--oneline']).stdout.trim()).toContain('template');
+    expect(log).toEqual([]);
+  });
+  it('removes only an origin that points at PaperWhite core', () => {
+    const dir = repo('https://github.com/paperwhite-blog/core.git');
+    const log: string[] = [];
+    resetGit(dir, false, (l) => log.push(l));
+    expect(run(dir, ['remote']).stdout.trim()).toBe('');
+    expect(run(dir, ['log', '--oneline']).stdout.trim()).toContain('template');
+    expect(log[0]).toMatch(/removed the `origin` remote/);
   });
 });
 

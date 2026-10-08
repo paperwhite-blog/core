@@ -2,16 +2,16 @@
 
 **Obsidian in, Lighthouse 100 out.** A folder of Markdown, written the Obsidian way, becomes a production-grade static blog: SEO complete, bilingual-ready (English and Persian with full RTL), 100/100/100/100 in Lighthouse, about 5 KB of JavaScript per page.
 
-There is nothing to install from a registry. **This repository is your blog.**
+There is nothing to install from a registry. **This repository is your blog**: click **Use this template** on GitHub, clone the repository it creates, and:
 
 ```bash
-git clone https://github.com/paperwhite-blog/core my-blog
-cd my-blog && pnpm install
+pnpm install
 pnpm exec paperwhite init        # title, URL, deploy target; strips PaperWhite's dev files
 pnpm dev                         # write at http://localhost:4321
+git add -A && git commit -m "paperwhite init" && git push
 ```
 
-Then push to your own GitHub repository. The workflow `init` wrote builds and deploys the site (GitHub Pages, Cloudflare Pages, Netlify or Vercel) and rebuilds daily so scheduled posts appear on time.
+The workflow `init` wrote builds and deploys the site (GitHub Pages, Cloudflare Pages, Netlify or Vercel) and rebuilds daily so scheduled posts appear on time.
 
 ## What you get
 

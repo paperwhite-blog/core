@@ -4,7 +4,7 @@
 
 | Command | Does |
 | --- | --- |
-| `init [--yes] [--title …] [--description …] [--url …] [--author …] [--locale en,fa] [--deploy github-pages\|cloudflare\|netlify\|vercel\|none] [--keep-samples] [--keep-history]` | Turns a fresh clone into your blog. Interactive unless `--yes`. See [Getting started](getting-started.md). |
+| `init [--yes] [--title …] [--description …] [--url …] [--author …] [--locale en,fa] [--deploy github-pages\|cloudflare\|netlify\|vercel\|none] [--keep-samples] [--fresh-history]` | Turns a repository created from the template (or a clone) into your blog. Interactive unless `--yes`. Git history and `origin` are kept; a remote pointing at core is removed; `--fresh-history` starts over with one commit. See [Getting started](getting-started.md). |
 | `dev [--port N] [--host] [--open]` | Dev server with live reload on note edits. |
 | `build [--strict]` | Static build into `dist/`, search index, SEO audit. `--strict` fails on audit errors. |
 | `preview [--port N] [--open]` | Serves `dist/`. |

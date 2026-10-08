@@ -1,15 +1,19 @@
 # Getting started
 
-## 1. Clone and run
+## 1. Create your repository
+
+On [github.com/paperwhite-blog/core](https://github.com/paperwhite-blog/core) click **Use this template → Create a new repository**. That gives you a repository of your own with a clean history. Then:
 
 ```bash
-git clone https://github.com/paperwhite-blog/core my-blog
+git clone git@github.com:you/my-blog.git
 cd my-blog
 pnpm install
 pnpm dev
 ```
 
 Open http://localhost:4321. What you see is the sample content in `content/` rendered by the built-in **paper** theme.
+
+(A plain `git clone https://github.com/paperwhite-blog/core` works too; `init` then removes the `origin` remote that points at core so you can add your own, and `--fresh-history` throws core's history away if you want a clean slate.)
 
 ## 2. Make it yours
 
@@ -23,16 +27,14 @@ pnpm exec paperwhite init
 - removes PaperWhite's own development files (`dev/`, `pw-core/test`, the core CI workflow, dev scripts);
 - replaces the sample posts with a hello-world post and an about page (say no to keep the samples);
 - writes `.github/workflows/deploy.yml` for the host you picked;
-- replaces the README with a short one for your blog;
-- starts a fresh git history with one commit (or just removes the `origin` remote with `--keep-history`).
+- replaces the README with a short one for your blog.
 
-Every question has a flag, so a script can run `paperwhite init --yes --title "My Blog" --url https://blog.example.com --deploy netlify`.
+Git history and your `origin` remote are left as they are. Every question has a flag, so a script can run `paperwhite init --yes --title "My Blog" --url https://blog.example.com --deploy netlify`.
 
-Then connect your own repository:
+Commit and push:
 
 ```bash
-git remote add origin git@github.com:you/my-blog.git
-git push -u origin main
+git add -A && git commit -m "paperwhite init" && git push
 ```
 
 ## 3. Write

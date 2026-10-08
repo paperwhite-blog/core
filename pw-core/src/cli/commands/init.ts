@@ -19,7 +19,8 @@ export interface InitAnswers {
   locales: string[];
   deploy: DeployTarget;
   removeSamples: boolean;
-  freshHistory: boolean;
+  /** Only for a direct clone of core: throw the history away. Never for a repository created from the template. */
+  freshHistory?: boolean;
 }
 
 export interface InitOptions {
@@ -119,6 +120,11 @@ function git(root: string, args: string[]): { ok: boolean; out: string } {
   return { ok: r.status === 0, out: `${r.stdout ?? ''}${r.stderr ?? ''}`.trim() };
 }
 
+/**
+ * Repositories made with GitHub's "Use this template" already have their own history and origin,
+ * so git is left alone. A direct clone of core still points at paperwhite-blog/core: that remote is
+ * removed so a later `git push` cannot land in core. `fresh` (opt-in) throws the history away.
+ */
 export function resetGit(root: string, fresh: boolean, log: (l: string) => void): void {
   if (!fs.existsSync(path.join(root, '.git'))) return;
   if (fresh) {
@@ -127,12 +133,12 @@ export function resetGit(root: string, fresh: boolean, log: (l: string) => void)
     git(root, ['add', '-A']);
     const c = git(root, ['commit', '-q', '-m', 'Initial commit: PaperWhite blog']);
     log(c.ok ? 'git: fresh history with one commit' : pc.yellow(`git: repository initialised; commit yourself (${c.out.split('\n')[0]})`));
-  } else {
-    const origin = git(root, ['remote', 'get-url', 'origin']);
-    if (origin.ok && /paperwhite-blog\/core/.test(origin.out)) {
-      git(root, ['remote', 'remove', 'origin']);
-      log('git: removed the `origin` remote that pointed at PaperWhite core');
-    }
+    return;
+  }
+  const origin = git(root, ['remote', 'get-url', 'origin']);
+  if (origin.ok && /github\.com[/:]paperwhite-blog\/core(\.git)?$/.test(origin.out.trim())) {
+    git(root, ['remote', 'remove', 'origin']);
+    log('git: removed the `origin` remote that pointed at PaperWhite core (add your own repository as origin)');
   }
 }
 
@@ -152,7 +158,7 @@ export function initSite(root: string, a: InitAnswers, opts: InitOptions = {}): 
     const r = spawnSync('pnpm', ['install'], { cwd: root, stdio: 'ignore' });
     log(r.status === 0 ? `${pc.green('pruned')} lockfile` : pc.yellow('pnpm install failed; run it before building'));
   }
-  if (opts.git !== false) resetGit(root, a.freshHistory, log);
+  if (opts.git !== false) resetGit(root, a.freshHistory === true, log);
   return { config, removed, samples, workflow };
 }
 
@@ -174,7 +180,7 @@ export const init = defineCommand({
     locale: { type: 'string', description: 'Comma-separated locales, first is default (default: en)' },
     deploy: { type: 'string', description: `Deploy target: ${DEPLOY_TARGETS.join(' | ')}` },
     'keep-samples': { type: 'boolean', description: 'Keep the sample posts and pages' },
-    'keep-history': { type: 'boolean', description: 'Keep the git history of PaperWhite core (only the origin remote is removed)' },
+    'fresh-history': { type: 'boolean', description: 'Direct clone of core only: throw the git history away and start with one commit' },
     yes: { type: 'boolean', description: 'Non-interactive: use the flags given and defaults for the rest' },
     site: { type: 'string', description: 'Site folder (default: current folder)' },
   },
@@ -205,14 +211,15 @@ export const init = defineCommand({
       let deploy = (await ask(`Deploy target (${DEPLOY_TARGETS.join(' | ')})`, 'github-pages', args.deploy)) as DeployTarget;
       if (!DEPLOY_TARGETS.includes(deploy)) throw new Error(`Unknown deploy target "${deploy}". Choose one of: ${DEPLOY_TARGETS.join(', ')}`);
       const removeSamples = await confirm('Remove the sample posts and pages?', true, args['keep-samples'] ? false : undefined);
-      const freshHistory = await confirm('Start a fresh git history (recommended)?', true, args['keep-history'] ? false : undefined);
+      const freshHistory = args['fresh-history'] === true;
       if (rl) {
-        console.log(`\nThis will edit paperwhite.config.yaml, delete ${DEV_PATHS.filter((p) => fs.existsSync(path.join(root, p))).join(', ')}${removeSamples ? ', replace the sample content' : ''}${freshHistory ? ', and reset git history' : ''}.`);
+        console.log(`\nThis will edit paperwhite.config.yaml, delete ${DEV_PATHS.filter((p) => fs.existsSync(path.join(root, p))).join(', ')}${removeSamples ? ', replace the sample content' : ''}${freshHistory ? ', and reset git history' : ''}. Git history and remotes stay as they are${freshHistory ? '' : ' (a remote pointing at paperwhite-blog/core is removed)'}.`);
         if (!(await confirm('Continue?', true))) return;
       }
       console.log('');
       const r = initSite(root, { title, description, url, author, locales: locales.length ? locales : ['en'], deploy, removeSamples, freshHistory }, { log: console.log });
-      console.log(`\n${pc.bold('Done.')} Next:\n  pnpm dev                      ${pc.dim('write at http://localhost:4321')}\n  git remote add origin <your repo> && git push -u origin main`);
+      const hasOrigin = git(root, ['remote', 'get-url', 'origin']).ok;
+      console.log(`\n${pc.bold('Done.')} Next:\n  pnpm dev                                    ${pc.dim('write at http://localhost:4321')}\n  git add -A && git commit -m "paperwhite init"${hasOrigin ? ' && git push' : `\n  git remote add origin <your repository> && git push -u origin main`}`);
       if (deploy !== 'none') console.log(`  ${DEPLOY_NOTES[deploy]}`);
       void r;
     } finally {

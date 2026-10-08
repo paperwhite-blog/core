@@ -1,6 +1,6 @@
 {
   "name": "@paperwhite/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "PaperWhite: Obsidian in, Lighthouse 100 out. Core, CLI, default theme.",
   "type": "module",
   "license": "MIT",
